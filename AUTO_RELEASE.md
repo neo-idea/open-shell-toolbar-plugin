@@ -1,69 +1,84 @@
-# 自动化发布说明
+# Auto Release & Publish
 
-## GitHub Actions 自动发布流程
+## CI/CD Pipeline
 
-本项目已配置 GitHub Actions，当代码推送到 `main` 分支时会自动：
+Push to `main` branch triggers an automated pipeline that:
 
-1. **自动递增版本号** - 补丁版本（第三位）自动 +1
-   - 例如：`1.0.0` → `1.0.1`
+1. **Bumps version** - Minor version (second segment) auto-increments: `1.0.0` → `1.1.0`
+2. **Updates files** - Syncs version in `pom.xml` and `plugin.xml`
+3. **Generates changelog** - Parses conventional commits since last tag
+4. **Builds plugin** - Maven build + distribution ZIP packaging
+5. **Verifies structure** - Checks JAR contains `plugin.xml`, ZIP has correct layout
+6. **Creates tag** - Pushes `v{version}` git tag
+7. **Updates CHANGELOG.md** - Prepends new release entry
+8. **Creates GitHub Release** - With changelog, installation instructions, plugin metadata
+9. **Publishes to JetBrains Marketplace** - Uploads distribution ZIP via API (optional)
 
-2. **创建 Git 标签** - 自动生成并推送版本标签
-   - 格式：`v{版本号}`，如 `v1.0.1`
+## Conventional Commits
 
-3. **创建 GitHub Release** - 自动生成发布版本
-   - 包含版本信息和变更说明
+Use these prefixes for automatic changelog categorization:
 
-## 工作流程
+| Prefix | Changelog Section |
+|--------|-------------------|
+| `feat:` | 🚀 New Features |
+| `fix:` | 🐛 Bug Fixes |
+| `improve:` / `enhance:` / `refactor:` | 🔧 Improvements |
+| `docs:` | 📝 Documentation |
+| `chore:` / `ci:` | (omitted from changelog) |
 
-```yaml
-触发条件：push 到 main 分支
-↓
-检出代码
-↓
-设置 Node.js 环境
-↓
-读取当前版本号
-↓
-递增补丁版本 (1.0.0 → 1.0.1)
-↓
-更新 package.json
-↓
-提交并推送版本变更
-↓
-创建并推送 Git 标签
-↓
-创建 GitHub Release
+Example:
+```
+feat: add search filter to tool window
+fix: resolve NPE in command executor
+docs: update installation guide
 ```
 
-## 使用方法
+## Setup
 
-### 本地开发
-```bash
-# 开发测试
-npm start
+### Required GitHub Secrets
 
-# 部署到 GitHub
-npm run deploy
+| Secret | Description | Required |
+|--------|-------------|----------|
+| `GITHUB_TOKEN` | Auto-provided by GitHub Actions | Yes |
+| `JETBRAINS_TOKEN` | JetBrains Marketplace API token | No (optional) |
+
+### JetBrains Marketplace Token
+
+1. Go to [JetBrains Marketplace Profile](https://plugins.jetbrains.com/author/me/tokens)
+2. Generate a new token
+3. Add as `JETBRAINS_TOKEN` in **Settings > Secrets and variables > Actions**
+
+### Optional GitHub Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `JETBRAINS_CHANNEL` | `stable` | Marketplace channel (`stable`, `eap`, etc.) |
+
+## Versioning
+
+Follows [Semantic Versioning](https://semver.org/):
+
+- **Patch** (`1.0.x`): Bug fixes (manual)
+- **Minor** (`1.x.0`): New features (auto on push to main)
+- **Major** (`x.0.0`): Breaking changes (manual)
+
+## Distribution Structure
+
+The built ZIP follows IntelliJ plugin convention:
+
+```
+Open Shell Toolbar/
+├── lib/
+│   ├── open-shell-toolbar-plugin-{version}.jar
+│   └── gson-2.10.1.jar
+├── README.md
+├── CHANGELOG.md
+└── LICENSE
 ```
 
-### 自动发布
-只需将代码推送到 main 分支：
-```bash
-git add .
-git commit -m "feat: your changes"
-git push origin main
-```
+## Manual Installation
 
-GitHub Actions 会自动处理版本发布！
-
-## 配置文件
-
-- `.github/workflows/auto-release.yml` - GitHub Actions 工作流配置
-- `package.json` - 项目版本信息
-
-## 注意事项
-
-1. 确保有权限推送到 main 分支
-2. GitHub Actions 会自动使用 `GITHUB_TOKEN` 创建 Release
-3. 每次推送到 main 都会触发新版本发布
-4. 版本号格式：`主版本。次版本。补丁版本` (MAJOR.MINOR.PATCH)
+1. Download ZIP from [GitHub Releases](../../releases)
+2. IntelliJ IDEA → **Settings → Plugins → ⚙️ → Install Plugin from Disk...**
+3. Select the ZIP file
+4. Restart IDE

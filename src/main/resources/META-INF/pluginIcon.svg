@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect x="1" y="2" width="14" height="12" rx="2" fill="#4A5568" stroke="#2D3748" stroke-width="1"/>
+
+  <!-- Terminal Window Header -->
+  <path d="M1 4 C1 3 2 2 3 2 L13 2 C14 2 15 3 15 4 L15 5 L1 5 Z" fill="#2D3748"/>
+
+  <!-- Window Controls -->
+  <circle cx="3.5" cy="3.5" r="0.8" fill="#FC8181"/>
+  <circle cx="6" cy="3.5" r="0.8" fill="#F6E05E"/>
+  <circle cx="8.5" cy="3.5" r="0.8" fill="#68D391"/>
+
+  <!-- Prompt Arrow (>) -->
+  <path d="M4 8 L7 10 L4 12" fill="none" stroke="#E2E8F0" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Cursor Line -->
+  <path d="M8.5 11.5 L11.5 11.5" stroke="#E2E8F0" stroke-width="1.2" stroke-linecap="round"/>
+
+  <!-- Command Path -->
+  <path d="M3.5 14 L12.5 14" stroke="#4A5568" stroke-width="0.5" opacity="0.3"/>
+</svg>

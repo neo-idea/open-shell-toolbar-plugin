@@ -1,1 +1,30 @@
-Nothing needs to be added to .gitignore since only a source file (index.html) was modified and there are no build artifacts, dependencies, or temporary files in the changes.
+# Compiled class files
+*.class
+
+# Build output
+target/
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dependencies
+node_modules/
+
+# Package files
+*.jar
+*.zip
+!.mvn/wrapper/maven-wrapper.jar
+
+# Logs
+*.log
+
+# Env
+.env
+.env.local

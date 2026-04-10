@@ -1,73 +1,295 @@
-name: Auto Release on Push
+name: Build & Release Plugin
 
 on:
   push:
     branches:
       - main
 
+permissions:
+  contents: write
+
+env:
+  JAVA_VERSION: '17'
+  JAVA_DISTRIBUTION: 'temurin'
+  PLUGIN_ID: 'com.pekaboo.opensource.open-shell-toolbar'
+
 jobs:
-  release:
+  build-and-release:
     runs-on: ubuntu-latest
-    
+
     steps:
+      # ── Checkout ──────────────────────────────────────────────
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── Setup JDK ────────────────────────────────────────────
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
         with:
-          node-version: '20'
-      
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: maven
+
+      # ── Configure Git ────────────────────────────────────────
       - name: Configure Git
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-      
-      - name: Bump version and create tag
-        id: version_bump
+
+      # ── Version Bump ─────────────────────────────────────────
+      - name: Bump minor version
+        id: version
         run: |
-          # Get current version
-          CURRENT_VERSION=$(node -p "require('./package.json').version")
-          
-          # Split version into parts
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
-          
-          # Increment patch version (minor in your terminology)
-          NEW_PATCH=$((PATCH + 1))
-          NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
-          
-          # Update package.json with new version
-          npm version $NEW_VERSION --no-git-tag-version
-          
-          # Commit the version change
-          git add package.json
-          git commit -m "chore: bump version to $NEW_VERSION [skip ci]"
+          # Read current version from pom.xml
+          CURRENT=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "Current version: $CURRENT"
+
+          # Parse semver
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+
+          # Increment minor version, reset patch to 0
+          NEW_MINOR=$((MINOR + 1))
+          NEW_VERSION="${MAJOR}.${NEW_MINOR}.0"
+
+          echo "New version: $NEW_VERSION"
+          echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          echo "old_version=$CURRENT" >> "$GITHUB_OUTPUT"
+
+          # Update pom.xml
+          mvn versions:set -DnewVersion="$NEW_VERSION" -DgenerateBackupPoms=false -q
+
+          # Update plugin.xml <version> (if present) or add it
+          PLUGIN_XML="src/main/resources/META-INF/plugin.xml"
+          if grep -q '<version>' "$PLUGIN_XML"; then
+            sed -i "s|<version>.*</version>|<version>$NEW_VERSION</version>|" "$PLUGIN_XML"
+          else
+            sed -i "s|</description>|</description>\n    <version>$NEW_VERSION</version>|" "$PLUGIN_XML"
+          fi
+
+          # Also update <idea-version> since-build to match major.minor
+          SINCE_BUILD="${MAJOR}${NEW_MINOR}"
+          echo "since_build=$SINCE_BUILD" >> "$GITHUB_OUTPUT"
+
+      # ── Generate Changelog ───────────────────────────────────
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Get the previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+
+          if [ -z "$PREV_TAG" ]; then
+            COMMIT_RANGE="HEAD"
+          else
+            COMMIT_RANGE="${PREV_TAG}..HEAD"
+          fi
+
+          echo "Commit range: $COMMIT_RANGE"
+
+          # Generate categorized changelog from conventional commits
+          {
+            echo "CHANGELOG<<EOF"
+
+            # Summary
+            TOTAL_COMMITS=$(git log $COMMIT_RANGE --oneline 2>/dev/null | wc -l)
+            echo "## What's Changed"
+            echo ""
+            echo "**${TOTAL_COMMITS} commits** since previous release."
+            echo ""
+
+            # Features
+            FEATS=$(git log $COMMIT_RANGE --oneline --grep="^feat" 2>/dev/null || true)
+            if [ -n "$FEATS" ]; then
+              echo "### 🚀 New Features"
+              echo "$FEATS" | while read -r line; do
+                hash=$(echo "$line" | cut -d' ' -f1)
+                msg=$(echo "$line" | sed "s/^$hash //;s/^feat[^:]*: //" )
+                echo "- $msg (${hash})"
+              done
+              echo ""
+            fi
+
+            # Bug fixes
+            FIXES=$(git log $COMMIT_RANGE --oneline --grep="^fix" 2>/dev/null || true)
+            if [ -n "$FIXES" ]; then
+              echo "### 🐛 Bug Fixes"
+              echo "$FIXES" | while read -r line; do
+                hash=$(echo "$line" | cut -d' ' -f1)
+                msg=$(echo "$line" | sed "s/^$hash //;s/^fix[^:]*: //" )
+                echo "- $msg (${hash})"
+              done
+              echo ""
+            fi
+
+            # Improvements
+            IMPROVES=$(git log $COMMIT_RANGE --oneline --grep="^improve\|^enhance\|^refactor\|^perf" 2>/dev/null || true)
+            if [ -n "$IMPROVES" ]; then
+              echo "### 🔧 Improvements"
+              echo "$IMPROVES" | while read -r line; do
+                hash=$(echo "$line" | cut -d' ' -f1)
+                msg=$(echo "$line" | sed "s/^$hash //;s/^[^:]*: //" )
+                echo "- $msg (${hash})"
+              done
+              echo ""
+            fi
+
+            # Docs
+            DOCS=$(git log $COMMIT_RANGE --oneline --grep="^docs" 2>/dev/null || true)
+            if [ -n "$DOCS" ]; then
+              echo "### 📝 Documentation"
+              echo "$DOCS" | while read -r line; do
+                hash=$(echo "$line" | cut -d' ' -f1)
+                msg=$(echo "$line" | sed "s/^$hash //;s/^docs[^:]*: //" )
+                echo "- $msg (${hash})"
+              done
+              echo ""
+            fi
+
+            # Other changes
+            OTHER=$(git log $COMMIT_RANGE --oneline --invert-grep --grep="^feat\|^fix\|^improve\|^enhance\|^refactor\|^perf\|^docs\|^chore\|^ci\|^style\|^test" 2>/dev/null || true)
+            if [ -n "$OTHER" ]; then
+              echo "### 📦 Other Changes"
+              echo "$OTHER" | while read -r line; do
+                hash=$(echo "$line" | cut -d' ' -f1)
+                msg=$(echo "$line" | sed "s/^$hash //" )
+                echo "- $msg (${hash})"
+              done
+              echo ""
+            fi
+
+            echo "---"
+            echo ""
+            echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREV_TAG:-$(git rev-list --max-parents=0 HEAD | head -c7)}...v${{ steps.version.outputs.new_version }}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      # ── Build Plugin ─────────────────────────────────────────
+      - name: Build plugin with Maven
+        run: |
+          mvn clean package -DskipTests -q
+
+          # Verify the distribution was created
+          DIST_FILE="target/distributions/Open Shell Toolbar-*.zip"
+          if ls $DIST_FILE 1>/dev/null 2>&1; then
+            echo "Distribution created successfully"
+            ls -la target/distributions/
+          else
+            echo "::error::Plugin distribution not found"
+            exit 1
+          fi
+
+      # ── Verify Plugin ────────────────────────────────────────
+      - name: Verify plugin structure
+        run: |
+          DIST_ZIP=$(ls target/distributions/Open\ Shell\ Toolbar-*.zip | head -1)
+          echo "Distribution: $DIST_ZIP"
+
+          # List contents to verify structure
+          unzip -l "$DIST_ZIP"
+
+          # Verify plugin.xml is in the JAR
+          JAR_FILE=$(ls target/open-shell-toolbar-plugin-*.jar | head -1)
+          echo "JAR: $JAR_FILE"
+          jar tf "$JAR_FILE" | grep "plugin.xml" || echo "::warning::plugin.xml not found in JAR"
+
+      # ── Commit Version Bump ──────────────────────────────────
+      - name: Commit version bump
+        run: |
+          git add pom.xml src/main/resources/META-INF/plugin.xml
+          git commit -m "chore: release v${{ steps.version.outputs.new_version }} [skip ci]"
           git push
-          
-          # Create and push tag
-          git tag "v$NEW_VERSION"
-          git push origin "v$NEW_VERSION"
-          
-          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
-      
+
+      # ── Create Tag ───────────────────────────────────────────
+      - name: Create git tag
+        run: |
+          git tag "v${{ steps.version.outputs.new_version }}"
+          git push origin "v${{ steps.version.outputs.new_version }}"
+
+      # ── Update CHANGELOG.md ──────────────────────────────────
+      - name: Update CHANGELOG.md
+        run: |
+          VERSION="${{ steps.version.outputs.new_version }}"
+          DATE=$(date +%Y-%m-%d)
+          CHANGELOG_BODY="${{ steps.changelog.outputs.CHANGELOG }}"
+
+          # Create new changelog entry
+          {
+            echo "# Changelog"
+            echo ""
+            echo "## [${VERSION}] - ${DATE}"
+            echo ""
+            echo "${CHANGELOG_BODY}"
+            echo ""
+
+            # Append existing changelog content (skip the header)
+            if [ -f CHANGELOG.md ]; then
+              sed '1,/^$/d' CHANGELOG.md | tail -n +2
+            fi
+          } > CHANGELOG_NEW.md
+
+          mv CHANGELOG_NEW.md CHANGELOG.md
+
+          git add CHANGELOG.md
+          git commit -m "docs: update CHANGELOG for v${VERSION} [skip ci]"
+          git push
+
+      # ── Create GitHub Release ────────────────────────────────
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.version_bump.outputs.new_version }}
-          name: Release v${{ steps.version_bump.outputs.new_version }}
+          tag_name: v${{ steps.version.outputs.new_version }}
+          name: "Open Shell Toolbar v${{ steps.version.outputs.new_version }}"
           body: |
-            ## Changes in this release
-            
-            Automated release triggered by push to main branch.
-            
-            ### Version Update
-            - Bumped patch version from previous release
-            
-            ### What's Changed
-            See commits for details.
+            ${{ steps.changelog.outputs.CHANGELOG }}
+
+            ---
+
+            ### 📦 Installation
+            1. Download the `.zip` file below
+            2. In IntelliJ IDEA: **Settings → Plugins → ⚙️ → Install Plugin from Disk...**
+            3. Select the downloaded zip file
+            4. Restart IDE
+
+            ### 📋 Plugin Info
+            | Property | Value |
+            |----------|-------|
+            | Version | `${{ steps.version.outputs.new_version }}` |
+            | Min IDE Build | `${{ steps.version.outputs.since_build }}` |
+            | Plugin ID | `${{ env.PLUGIN_ID }}` |
+          files: |
+            target/distributions/Open Shell Toolbar-*.zip
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── Publish to JetBrains Marketplace ─────────────────────
+      - name: Publish to JetBrains Marketplace
+        if: env.JETBRAINS_TOKEN != ''
+        env:
+          JETBRAINS_TOKEN: ${{ secrets.JETBRAINS_TOKEN }}
+          JETBRAINS_CHANNEL: ${{ vars.JETBRAINS_CHANNEL || 'stable' }}
+        run: |
+          DIST_ZIP=$(ls target/distributions/Open\ Shell\ Toolbar-*.zip | head -1)
+          VERSION="${{ steps.version.outputs.new_version }}"
+
+          echo "Publishing plugin v${VERSION} to JetBrains Marketplace..."
+
+          # Use JetBrains Plugin Repository API
+          HTTP_CODE=$(curl -s -o /tmp/publish-response.json -w "%{http_code}" \
+            -X POST "https://plugins.jetbrains.com/plugin/uploadPlugin" \
+            -H "Authorization: Bearer ${JETBRAINS_TOKEN}" \
+            -F "pluginId=${{ env.PLUGIN_ID }}" \
+            -F "channel=${JETBRAINS_CHANNEL}" \
+            -F "file=@${DIST_ZIP}")
+
+          echo "HTTP Response: ${HTTP_CODE}"
+          cat /tmp/publish-response.json
+
+          if [ "${HTTP_CODE}" -ge 200 ] && [ "${HTTP_CODE}" -lt 300 ]; then
+            echo "✅ Successfully published to JetBrains Marketplace"
+          else
+            echo "::warning::Failed to publish to JetBrains Marketplace (HTTP ${HTTP_CODE}). The plugin zip is still available in the GitHub Release."
+          fi

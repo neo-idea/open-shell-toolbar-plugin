@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<idea-plugin>
+    <id>com.pekaboo.opensource.open-shell-toolbar</id>
+    <name>Open Shell Toolbar</name>
+    <vendor url="https://github.com/pekaboo">Pekaboo</vendor>
+
+    <description><![CDATA[
+        Customizable toolbar plugin for IntelliJ IDEA.
+        Add shell command buttons to toolbar, sidebar, and status bar for quick access to frequently used commands.
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <version>1.0.0</version>
+    <change-notes><![CDATA[
+        <b>1.0.0</b><br/>
+        <ul>
+            <li>Initial release: toolbar buttons, tool window, status bar widget</li>
+            <li>Shell command execution with variable substitution</li>
+            <li>JSON import/export for configurations</li>
+        </ul>
+    ]]></change-notes>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Notification Group -->
+        <notificationGroup id="Shell Toolbar Notifications" displayType="BALLOON"/>
+
+        <!-- Application Services -->
+        <applicationService serviceImplementation="com.pekaboo.opensource.toolbar.service.ToolbarConfigService"/>
+        <applicationService serviceImplementation="com.pekaboo.opensource.toolbar.service.CommandExecutor"/>
+
+        <!-- Tool Window -->
+        <toolWindow id="Shell Toolbar"
+                    anchor="right"
+                    icon="/META-INF/pluginIcon.svg"
+                    factoryClass="com.pekaboo.opensource.toolbar.toolwindow.ConfigToolWindowFactory"
+                    canCloseContents="true"/>
+
+        <!-- Status Bar Widget -->
+        <statusBarWidgetFactory id="ShellToolbarStatusBar"
+                                implementationClass="com.pekaboo.opensource.toolbar.statusbar.CommandStatusBarWidgetFactory"
+                                order="after PositionPanel"/>
+
+        <!-- Settings Configurable -->
+        <projectConfigurable parentId="tools"
+                             instance="com.pekaboo.opensource.toolbar.settings.ConfigSettingsConfigurable"
+                             id="pekaboo.shell.toolbar"
+                             displayName="Shell Toolbar"/>
+    </extensions>
+
+    <actions>
+        <group id="ShellToolbarGroup"
+               class="com.pekaboo.opensource.toolbar.action.ToolbarActionGroup"
+               text="Shell Commands"
+               description="Quick access shell commands"
+               icon="/META-INF/pluginIcon.svg"
+               popup="true">
+            <add-to-group group-id="MainToolBarRight" anchor="last"/>
+        </group>
+    </actions>
+
+    <idea-version since-build="233"/>
+</idea-plugin>

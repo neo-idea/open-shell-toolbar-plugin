@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.pekaboo.opensource</groupId>
+    <artifactId>open-shell-toolbar-plugin</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+
+    <name>Open Shell Toolbar</name>
+    <description>Customizable toolbar plugin for IntelliJ IDEA - add shell command buttons to toolbar, sidebar, and status bar</description>
+    <vendor url="https://github.com/pekaboo">Pekaboo</vendor>
+
+    <properties>
+        <java.version>17</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <intellij.platform.version>233.15026.9</intellij.platform.version>
+        <intellij.api.version>233.15026.9</intellij.api.version>
+        <project.build.outputTimestamp>2026-04-10T00:00:00Z</project.build.outputTimestamp>
+    </properties>
+
+    <repositories>
+        <repository>
+            <id>intellij-releases</id>
+            <url>https://cache-redirector.jetbrains.com/intellij-dependencies</url>
+        </repository>
+        <repository>
+            <id>jetbrains-marketplace</id>
+            <url>https://cache-redirector.jetbrains.com/maven.pkg.jetbrains.space/public/p/compose/dev</url>
+        </repository>
+    </repositories>
+
+    <dependencies>
+        <!-- IntelliJ Platform dependencies -->
+        <dependency>
+            <groupId>com.jetbrains.intellij.platform</groupId>
+            <artifactId>core</artifactId>
+            <version>${intellij.api.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.jetbrains.intellij.platform</groupId>
+            <artifactId>core-impl</artifactId>
+            <version>${intellij.api.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.jetbrains.intellij.platform</groupId>
+            <artifactId>project-model-impl</artifactId>
+            <version>${intellij.api.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.jetbrains.intellij.platform</groupId>
+            <artifactId>lang-core-impl</artifactId>
+            <version>${intellij.api.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Gson for JSON import/export -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.10.1</version>
+        </dependency>
+
+        <!-- Test dependencies -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.2</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <compilerArgs>
+                        <arg>--add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.3.0</version>
+                <configuration>
+                    <outputDirectory>${project.build.directory}</outputDirectory>
+                    <archive>
+                        <manifest>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.4.0</version>
+                <executions>
+                    <execution>
+                        <id>add-resource</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>add-resource</goal>
+                        </goals>
+                        <configuration>
+                            <resources>
+                                <resource>
+                                    <directory>src/main/resources</directory>
+                                    <includes>
+                                        <include>**/*</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Assembly plugin to create distribution zip for JetBrains Marketplace -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.7.1</version>
+                <configuration>
+                    <outputDirectory>${project.build.directory}/distributions</outputDirectory>
+                    <appendAssemblyId>false</appendAssemblyId>
+                    <recompressZippedFiles>true</recompressZippedFiles>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>src/assembly/plugin.xml</descriptor>
+                            </descriptors>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
