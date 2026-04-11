@@ -11,7 +11,7 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.*;
 import com.intellij.ui.components.JBScrollPane;
-import com.intellij.ui.components.JBTable;
+import com.intellij.ui.table.JBTable;
 import com.intellij.util.ui.JBUI;
 import com.pekaboo.opensource.toolbar.model.ShellCommandConfig;
 import com.pekaboo.opensource.toolbar.service.ToolbarConfigService;
@@ -33,8 +33,6 @@ import java.awt.event.MouseEvent;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Panel for managing shell command configurations.
@@ -86,15 +84,7 @@ public class ConfigManagerPanel implements Disposable {
      */
     private void initializeUI() {
         tableModel = new ConfigTableModel();
-        configTable = new JBTable(tableModel) {
-            @Override
-            public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
-                Component c = super.prepareRenderer(renderer, row, column);
-                // Set row height for better emoji visibility
-                setRowHeight(30);
-                return c;
-            }
-        };
+        configTable = new JBTable(tableModel);
 
         // Configure table appearance
         configTable.setRowHeight(30);
@@ -127,7 +117,7 @@ public class ConfigManagerPanel implements Disposable {
                 .addExtraAction(new ExportAction());
 
         // Add border to toolbar
-        decorator.setToolbarBorder(JBUI.Borders.customLine(new JBColor.Gray(200), 0, 0, 1, 0));
+        decorator.setToolbarBorder(JBUI.Borders.customLine(JBColor.GRAY, 0, 0, 1, 0));
 
         // Create scroll pane
         JBScrollPane scrollPane = new JBScrollPane(configTable);
@@ -178,7 +168,7 @@ public class ConfigManagerPanel implements Disposable {
     /**
      * Adds a new configuration.
      */
-    private void addConfig(ActionEvent e) {
+    private void addConfig(AnActionButton e) {
         AddEditConfigDialog dialog = new AddEditConfigDialog(project);
         if (dialog.showAndGet()) {
             ShellCommandConfig newConfig = dialog.getConfig();
@@ -191,7 +181,7 @@ public class ConfigManagerPanel implements Disposable {
     /**
      * Edits the selected configuration.
      */
-    private void editSelectedConfig(ActionEvent e) {
+    private void editSelectedConfig(AnActionButton e) {
         editSelectedConfig();
     }
 
@@ -217,7 +207,7 @@ public class ConfigManagerPanel implements Disposable {
     /**
      * Removes the selected configuration.
      */
-    private void removeSelectedConfig(ActionEvent e) {
+    private void removeSelectedConfig(AnActionButton e) {
         int selectedRow = configTable.getSelectedRow();
         if (selectedRow < 0) {
             return;
@@ -249,7 +239,7 @@ public class ConfigManagerPanel implements Disposable {
     /**
      * Moves the selected config up.
      */
-    private void moveConfigUp(ActionEvent e) {
+    private void moveConfigUp(AnActionButton e) {
         int selectedRow = configTable.getSelectedRow();
         if (selectedRow <= 0) {
             return;
@@ -270,7 +260,7 @@ public class ConfigManagerPanel implements Disposable {
     /**
      * Moves the selected config down.
      */
-    private void moveConfigDown(ActionEvent e) {
+    private void moveConfigDown(AnActionButton e) {
         int selectedRow = configTable.getSelectedRow();
         if (selectedRow < 0 || selectedRow >= configs.size() - 1) {
             return;

@@ -4,18 +4,17 @@ import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.fileChooser.FileChooserFactory;
-import com.intellij.openapi.fileChooser.FileSaverDescriptor;
+import com.intellij.openapi.fileChooser.FileChooser;
+import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.ui.*;
-import com.intellij.openapi.util.io.FileUtil;
-import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.openapi.vfs.VirtualFileManager;
+import com.intellij.openapi.ui.DialogWrapper;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
 import com.intellij.ui.*;
 import com.intellij.ui.components.JBList;
 import com.intellij.ui.components.JBScrollPane;
+import com.intellij.ui.content.ContentFactory;
 import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
 import com.pekaboo.opensource.toolbar.model.ShellCommandConfig;
@@ -25,9 +24,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -41,9 +40,8 @@ public class ConfigToolWindowFactory implements ToolWindowFactory {
     @Override
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
         ConfigToolWindowPanel panel = new ConfigToolWindowPanel(project);
-        com.intellij.ui.ContentFactory contentFactory = com.intellij.ui.ContentFactory.getInstance();
-        com.intellij.ui.Content content = contentFactory.createContent(panel, "", false);
-        toolWindow.getContentManager().addContent(content);
+        ContentFactory contentFactory = ContentFactory.getInstance();
+        toolWindow.getContentManager().addContent(contentFactory.createContent(panel, "", false));
     }
 
     /**
@@ -76,13 +74,12 @@ public class ConfigToolWindowFactory implements ToolWindowFactory {
 
             // Top: Search field
             searchField = new SearchTextField();
-            searchField.addDocumentListener(new com.intellij.openapi.editor.event.DocumentListener() {
+            searchField.addKeyListener(new KeyAdapter() {
                 @Override
-                public void documentChanged(com.intellij.openapi.editor.event.DocumentEvent e) {
+                public void keyReleased(KeyEvent e) {
                     filterConfigs(searchField.getText());
                 }
             });
-            searchField.setEmptyText("Search commands...");
 
             JPanel searchPanel = JBUI.Panels.simplePanel(searchField)
                     .withBorder(JBUI.Borders.empty(0, 0, 8, 0));
@@ -118,10 +115,7 @@ public class ConfigToolWindowFactory implements ToolWindowFactory {
             });
 
             JBScrollPane scrollPane = new JBScrollPane(configList);
-            scrollPane.setBorder(JBUI.Borders.compound(
-                    JBUI.Borders.customLine(UIUtil.getBorderColor(), 1),
-                    JBUI.Borders.empty(5)
-            ));
+            scrollPane.setBorder(JBUI.Borders.empty(5));
             add(scrollPane, BorderLayout.CENTER);
 
             // Bottom: Action toolbar and status
@@ -141,7 +135,6 @@ public class ConfigToolWindowFactory implements ToolWindowFactory {
             ActionToolbar actionToolbar = ActionManager.getInstance()
                     .createActionToolbar("ShellCommandToolbar", actionGroup, false);
             actionToolbar.setTargetComponent(this);
-            actionToolbar.setOrientation(ActionToolbar.HORIZONTAL);
             actionToolbar.setReservePlaceAutoPopupIcon(false);
 
             JPanel toolbarPanel = JBUI.Panels.simplePanel()
@@ -338,15 +331,13 @@ public class ConfigToolWindowFactory implements ToolWindowFactory {
             int index = configList.getSelectedIndex();
             List<ShellCommandConfig> configs = configService.getConfigs();
             if (index >= 0 && index < configs.size() - 1) {
-                // Swap in the actual service data
-                List<ShellCommandConfig> configList = new ArrayList<>(configs);
-                ShellCommandConfig temp = configList.get(index);
-                configList.set(index, configList.get(index + 1));
-                configList.set(index + 1, temp);
+                List<ShellCommandConfig> allConfigs = new ArrayList<>(configs);
+                ShellCommandConfig temp = allConfigs.get(index);
+                allConfigs.set(index, allConfigs.get(index + 1));
+                allConfigs.set(index + 1, temp);
 
-                // Update service
                 configService.clearAllConfigs();
-                for (ShellCommandConfig config : configList) {
+                for (ShellCommandConfig config : allConfigs) {
                     configService.addConfig(config);
                 }
 
@@ -375,7 +366,6 @@ public class ConfigToolWindowFactory implements ToolWindowFactory {
         private class RunAction extends AnAction {
             RunAction() {
                 super("Run", "Execute the selected command", AllIcons.Actions.Execute);
-                registerCustomShortcutSet(CommonShortcuts.getRun(), configList);
             }
 
             @Override
@@ -475,7 +465,7 @@ public class ConfigToolWindowFactory implements ToolWindowFactory {
             ToggleEnabledAction(ShellCommandConfig config) {
                 super(config.isEnabled() ? "Disable" : "Enable",
                         config.isEnabled() ? "Disable this command" : "Enable this command",
-                        config.isEnabled() ? AllIcons.Actions.Hide : AllIcons.Actions.Show);
+                        config.isEnabled() ? AllIcons.General.CollapseComponent : AllIcons.General.ExpandComponent);
                 this.config = config;
             }
 
@@ -560,9 +550,7 @@ public class ConfigToolWindowFactory implements ToolWindowFactory {
                 setForeground(UIUtil.getListSelectionForeground());
                 contentPanel.setForeground(UIUtil.getListSelectionForeground());
             } else {
-                setBackground(UIUtil.getDecoratedRowColor() % 2 == index % 2
-                        ? UIUtil.getListBackground()
-                        : UIUtil.getDecoratedRowColor());
+                setBackground(index % 2 == 0 ? UIUtil.getListBackground() : UIUtil.getDecoratedRowColor());
                 setForeground(UIUtil.getListForeground());
                 contentPanel.setForeground(UIUtil.getListForeground());
             }
@@ -616,16 +604,18 @@ public class ConfigToolWindowFactory implements ToolWindowFactory {
     private static class ConfigEditorDialog extends DialogWrapper {
 
         private final ShellCommandConfig originalConfig;
+        private final Project project;
         private ShellCommandConfig resultConfig;
 
-        private JBTextField titleField;
-        private JBTextField commandField;
-        private JBTextField workingDirField;
-        private JBTextField iconField;
-        private JBCheckBox enabledCheckBox;
+        private JTextField titleField;
+        private JTextField commandField;
+        private JTextField workingDirField;
+        private JTextField iconField;
+        private JCheckBox enabledCheckBox;
 
         public ConfigEditorDialog(@Nullable Project project, @Nullable ShellCommandConfig config) {
             super(project, config == null);
+            this.project = project;
             this.originalConfig = config;
             setTitle(config == null ? "Add New Command" : "Edit Command");
             setOKButtonText(config == null ? "Add" : "Save");
@@ -653,7 +643,7 @@ public class ConfigToolWindowFactory implements ToolWindowFactory {
 
             gbc.gridx = 1;
             gbc.weightx = 1;
-            titleField = new JBTextField();
+            titleField = new JTextField();
             titleField.setPreferredSize(new Dimension(300, 30));
             panel.add(titleField, gbc);
 
@@ -666,7 +656,7 @@ public class ConfigToolWindowFactory implements ToolWindowFactory {
 
             gbc.gridx = 1;
             gbc.weightx = 1;
-            commandField = new JBTextField();
+            commandField = new JTextField();
             commandField.setPreferredSize(new Dimension(300, 30));
             panel.add(commandField, gbc);
 
@@ -687,7 +677,7 @@ public class ConfigToolWindowFactory implements ToolWindowFactory {
             gbc.gridx = 1;
             gbc.weightx = 1;
             JPanel dirPanel = new JPanel(new BorderLayout(5, 0));
-            workingDirField = new JBTextField();
+            workingDirField = new JTextField();
             workingDirField.setPreferredSize(new Dimension(250, 30));
             dirPanel.add(workingDirField, BorderLayout.CENTER);
 
@@ -706,7 +696,7 @@ public class ConfigToolWindowFactory implements ToolWindowFactory {
             gbc.gridx = 1;
             gbc.weightx = 1;
             JPanel iconPanel = new JPanel(new BorderLayout(5, 0));
-            iconField = new JBTextField();
+            iconField = new JTextField();
             iconField.setPreferredSize(new Dimension(100, 30));
             iconField.setMaximumSize(new Dimension(100, 30));
             iconPanel.add(iconField, BorderLayout.WEST);
@@ -718,7 +708,7 @@ public class ConfigToolWindowFactory implements ToolWindowFactory {
             gbc.gridx = 0;
             gbc.gridy = row;
             gbc.gridwidth = 2;
-            enabledCheckBox = new JBCheckBox("Enabled");
+            enabledCheckBox = new JCheckBox("Enabled");
             panel.add(enabledCheckBox, gbc);
 
             // Load existing values
@@ -779,22 +769,11 @@ public class ConfigToolWindowFactory implements ToolWindowFactory {
         }
 
         private void browseDirectory() {
-            String projectPath = project != null ? project.getBasePath() : System.getProperty("user.home");
-            File startingDir = new File(projectPath);
-
-            FileChooserFactory fileChooserFactory = FileChooserFactory.getInstance();
-            VirtualFile baseDir = VirtualFileManager.getInstance().findFileByUrl("file://" + startingDir.getAbsolutePath());
-
-            if (baseDir != null) {
-                VirtualFile selected = fileChooserFactory.createFileChooser(
-                        new FileSaverDescriptor("Select Working Directory", "Choose the working directory for this command"),
-                        project,
-                        baseDir
-                ).save(null, baseDir, "");
-
-                if (selected != null) {
-                    workingDirField.setText(selected.getPath());
-                }
+            FileChooserDescriptor descriptor = new FileChooserDescriptor(false, true, false, false, false, false);
+            descriptor.setTitle("Select Working Directory");
+            var file = FileChooser.chooseFile(descriptor, project, null);
+            if (file != null) {
+                workingDirField.setText(file.getPath());
             }
         }
 

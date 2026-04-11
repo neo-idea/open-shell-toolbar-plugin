@@ -31,7 +31,10 @@ jobs:
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: ${{ env.JAVA_DISTRIBUTION }}
-          cache: maven
+
+      # ── Setup Gradle ─────────────────────────────────────────
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
 
       # ── Configure Git ────────────────────────────────────────
       - name: Configure Git
@@ -43,8 +46,8 @@ jobs:
       - name: Bump minor version
         id: version
         run: |
-          # Read current version from pom.xml
-          CURRENT=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          # Read current version from build.gradle.kts
+          CURRENT=$(grep '^version = ' build.gradle.kts | sed "s/version = \"\(.*\)\"/\1/")
           echo "Current version: $CURRENT"
 
           # Parse semver
@@ -58,44 +61,31 @@ jobs:
           echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
           echo "old_version=$CURRENT" >> "$GITHUB_OUTPUT"
 
-          # Update pom.xml
-          mvn versions:set -DnewVersion="$NEW_VERSION" -DgenerateBackupPoms=false -q
+          # Update build.gradle.kts
+          sed -i "s/^version = \".*\"/version = \"${NEW_VERSION}\"/" build.gradle.kts
 
-          # Update plugin.xml <version> (if present) or add it
+          # Update plugin.xml version and since-build
           PLUGIN_XML="src/main/resources/META-INF/plugin.xml"
-          if grep -q '<version>' "$PLUGIN_XML"; then
-            sed -i "s|<version>.*</version>|<version>$NEW_VERSION</version>|" "$PLUGIN_XML"
-          else
-            sed -i "s|</description>|</description>\n    <version>$NEW_VERSION</version>|" "$PLUGIN_XML"
-          fi
-
-          # Also update <idea-version> since-build to match major.minor
-          SINCE_BUILD="${MAJOR}${NEW_MINOR}"
-          echo "since_build=$SINCE_BUILD" >> "$GITHUB_OUTPUT"
+          sed -i "s|<version>.*</version>|<version>${NEW_VERSION}</version>|" "$PLUGIN_XML"
 
       # ── Generate Changelog ───────────────────────────────────
       - name: Generate changelog
         id: changelog
         run: |
-          # Get the previous tag
           PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
-
           if [ -z "$PREV_TAG" ]; then
             COMMIT_RANGE="HEAD"
           else
             COMMIT_RANGE="${PREV_TAG}..HEAD"
           fi
-
           echo "Commit range: $COMMIT_RANGE"
 
-          # Generate categorized changelog from conventional commits
           {
             echo "CHANGELOG<<EOF"
-
-            # Summary
-            TOTAL_COMMITS=$(git log $COMMIT_RANGE --oneline 2>/dev/null | wc -l)
             echo "## What's Changed"
             echo ""
+
+            TOTAL_COMMITS=$(git log $COMMIT_RANGE --oneline 2>/dev/null | wc -l)
             echo "**${TOTAL_COMMITS} commits** since previous release."
             echo ""
 
@@ -105,7 +95,7 @@ jobs:
               echo "### 🚀 New Features"
               echo "$FEATS" | while read -r line; do
                 hash=$(echo "$line" | cut -d' ' -f1)
-                msg=$(echo "$line" | sed "s/^$hash //;s/^feat[^:]*: //" )
+                msg=$(echo "$line" | sed "s/^$hash //;s/^feat[^:]*: //")
                 echo "- $msg (${hash})"
               done
               echo ""
@@ -117,43 +107,19 @@ jobs:
               echo "### 🐛 Bug Fixes"
               echo "$FIXES" | while read -r line; do
                 hash=$(echo "$line" | cut -d' ' -f1)
-                msg=$(echo "$line" | sed "s/^$hash //;s/^fix[^:]*: //" )
-                echo "- $msg (${hash})"
-              done
-              echo ""
-            fi
-
-            # Improvements
-            IMPROVES=$(git log $COMMIT_RANGE --oneline --grep="^improve\|^enhance\|^refactor\|^perf" 2>/dev/null || true)
-            if [ -n "$IMPROVES" ]; then
-              echo "### 🔧 Improvements"
-              echo "$IMPROVES" | while read -r line; do
-                hash=$(echo "$line" | cut -d' ' -f1)
-                msg=$(echo "$line" | sed "s/^$hash //;s/^[^:]*: //" )
-                echo "- $msg (${hash})"
-              done
-              echo ""
-            fi
-
-            # Docs
-            DOCS=$(git log $COMMIT_RANGE --oneline --grep="^docs" 2>/dev/null || true)
-            if [ -n "$DOCS" ]; then
-              echo "### 📝 Documentation"
-              echo "$DOCS" | while read -r line; do
-                hash=$(echo "$line" | cut -d' ' -f1)
-                msg=$(echo "$line" | sed "s/^$hash //;s/^docs[^:]*: //" )
+                msg=$(echo "$line" | sed "s/^$hash //;s/^fix[^:]*: //")
                 echo "- $msg (${hash})"
               done
               echo ""
             fi
 
             # Other changes
-            OTHER=$(git log $COMMIT_RANGE --oneline --invert-grep --grep="^feat\|^fix\|^improve\|^enhance\|^refactor\|^perf\|^docs\|^chore\|^ci\|^style\|^test" 2>/dev/null || true)
+            OTHER=$(git log $COMMIT_RANGE --oneline --invert-grep --grep="^feat\|^fix\|^chore\|^ci\|^style\|^test" 2>/dev/null || true)
             if [ -n "$OTHER" ]; then
               echo "### 📦 Other Changes"
               echo "$OTHER" | while read -r line; do
                 hash=$(echo "$line" | cut -d' ' -f1)
-                msg=$(echo "$line" | sed "s/^$hash //" )
+                msg=$(echo "$line" | sed "s/^$hash //")
                 echo "- $msg (${hash})"
               done
               echo ""
@@ -161,43 +127,35 @@ jobs:
 
             echo "---"
             echo ""
-            echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREV_TAG:-$(git rev-list --max-parents=0 HEAD | head -c7)}...v${{ steps.version.outputs.new_version }}"
+            REPO="${{ github.repository }}"
+            echo "**Full Changelog**: https://github.com/${REPO}/compare/${PREV_TAG:-$(git rev-list --max-parents=0 HEAD | head -c7)}...v${{ steps.version.outputs.new_version }}"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
       # ── Build Plugin ─────────────────────────────────────────
-      - name: Build plugin with Maven
+      - name: Build plugin
         run: |
-          mvn clean package -DskipTests -q
+          ./gradlew buildPlugin --no-daemon
 
-          # Verify the distribution was created
-          DIST_FILE="target/distributions/Open Shell Toolbar-*.zip"
+          # Verify distribution
+          DIST_FILE="build/distributions/open-shell-toolbar-plugin-*.zip"
           if ls $DIST_FILE 1>/dev/null 2>&1; then
             echo "Distribution created successfully"
-            ls -la target/distributions/
+            ls -lh build/distributions/
           else
             echo "::error::Plugin distribution not found"
             exit 1
           fi
 
       # ── Verify Plugin ────────────────────────────────────────
-      - name: Verify plugin structure
+      - name: Verify plugin
         run: |
-          DIST_ZIP=$(ls target/distributions/Open\ Shell\ Toolbar-*.zip | head -1)
-          echo "Distribution: $DIST_ZIP"
-
-          # List contents to verify structure
-          unzip -l "$DIST_ZIP"
-
-          # Verify plugin.xml is in the JAR
-          JAR_FILE=$(ls target/open-shell-toolbar-plugin-*.jar | head -1)
-          echo "JAR: $JAR_FILE"
-          jar tf "$JAR_FILE" | grep "plugin.xml" || echo "::warning::plugin.xml not found in JAR"
+          ./gradlew verifyPlugin --no-daemon
 
       # ── Commit Version Bump ──────────────────────────────────
       - name: Commit version bump
         run: |
-          git add pom.xml src/main/resources/META-INF/plugin.xml
+          git add build.gradle.kts src/main/resources/META-INF/plugin.xml
           git commit -m "chore: release v${{ steps.version.outputs.new_version }} [skip ci]"
           git push
 
@@ -214,7 +172,6 @@ jobs:
           DATE=$(date +%Y-%m-%d)
           CHANGELOG_BODY="${{ steps.changelog.outputs.CHANGELOG }}"
 
-          # Create new changelog entry
           {
             echo "# Changelog"
             echo ""
@@ -222,13 +179,10 @@ jobs:
             echo ""
             echo "${CHANGELOG_BODY}"
             echo ""
-
-            # Append existing changelog content (skip the header)
             if [ -f CHANGELOG.md ]; then
               sed '1,/^$/d' CHANGELOG.md | tail -n +2
             fi
           } > CHANGELOG_NEW.md
-
           mv CHANGELOG_NEW.md CHANGELOG.md
 
           git add CHANGELOG.md
@@ -256,10 +210,10 @@ jobs:
             | Property | Value |
             |----------|-------|
             | Version | `${{ steps.version.outputs.new_version }}` |
-            | Min IDE Build | `${{ steps.version.outputs.since_build }}` |
+            | Min IDE Build | `233` |
             | Plugin ID | `${{ env.PLUGIN_ID }}` |
           files: |
-            target/distributions/Open Shell Toolbar-*.zip
+            build/distributions/open-shell-toolbar-plugin-*.zip
           draft: false
           prerelease: false
         env:
@@ -272,24 +226,4 @@ jobs:
           JETBRAINS_TOKEN: ${{ secrets.JETBRAINS_TOKEN }}
           JETBRAINS_CHANNEL: ${{ vars.JETBRAINS_CHANNEL || 'stable' }}
         run: |
-          DIST_ZIP=$(ls target/distributions/Open\ Shell\ Toolbar-*.zip | head -1)
-          VERSION="${{ steps.version.outputs.new_version }}"
-
-          echo "Publishing plugin v${VERSION} to JetBrains Marketplace..."
-
-          # Use JetBrains Plugin Repository API
-          HTTP_CODE=$(curl -s -o /tmp/publish-response.json -w "%{http_code}" \
-            -X POST "https://plugins.jetbrains.com/plugin/uploadPlugin" \
-            -H "Authorization: Bearer ${JETBRAINS_TOKEN}" \
-            -F "pluginId=${{ env.PLUGIN_ID }}" \
-            -F "channel=${JETBRAINS_CHANNEL}" \
-            -F "file=@${DIST_ZIP}")
-
-          echo "HTTP Response: ${HTTP_CODE}"
-          cat /tmp/publish-response.json
-
-          if [ "${HTTP_CODE}" -ge 200 ] && [ "${HTTP_CODE}" -lt 300 ]; then
-            echo "✅ Successfully published to JetBrains Marketplace"
-          else
-            echo "::warning::Failed to publish to JetBrains Marketplace (HTTP ${HTTP_CODE}). The plugin zip is still available in the GitHub Release."
-          fi
+          ./gradlew publishPlugin --no-daemon

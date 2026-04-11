@@ -3,6 +3,12 @@
 
 # Build output
 target/
+build/
+out/
+
+# Gradle
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
 
 # IDE
 .idea/
@@ -16,11 +22,6 @@ Thumbs.db
 
 # Dependencies
 node_modules/
-
-# Package files
-*.jar
-*.zip
-!.mvn/wrapper/maven-wrapper.jar
 
 # Logs
 *.log

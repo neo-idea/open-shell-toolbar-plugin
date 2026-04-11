@@ -6,7 +6,7 @@ import com.google.gson.reflect.TypeToken;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
-import com.intellij.openapi.components.StoragePathMacros;
+
 import com.intellij.openapi.diagnostic.Logger;
 import com.pekaboo.opensource.toolbar.model.ShellCommandConfig;
 import org.jetbrains.annotations.NotNull;
@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
  * Persists command configurations to pekaboo-shell-toolbar.xml.
  */
 @Service(Service.Level.APP)
-@State(name = "ShellToolbarConfig", storages = @Storage(value = StoragePathMacros.APP_CONFIG + "/pekaboo-shell-toolbar.xml"))
+@State(name = "ShellToolbarConfig", storages = @Storage("pekaboo-shell-toolbar.xml"))
 public class ToolbarConfigService {
 
     private static final Logger LOG = Logger.getInstance(ToolbarConfigService.class);
