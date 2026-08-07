@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.1.2] - 2026-08-07
+
+## What's Changed
+
+**1 commits** since previous release.
+
+### 🐛 Bug Fixes
+- align plugin id with Marketplace (com.openshell.idea.toolbar) (e21ed58)
+
+---
+
+**Full Changelog**: https://github.com/neo-idea/open-shell-toolbar-plugin/compare/v1.1.1...v1.1.2
+
+
 ## [1.1.1] - 2026-08-07
 
 ## What's Changed

@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "com.pekaboo.opensource"
-version = "1.1.1"
+version = "1.1.2"
 
 repositories {
     mavenCentral()
@@ -37,10 +37,9 @@ intellijPlatform {
             Add shell command buttons to toolbar, sidebar, and status bar for quick access to frequently used commands.
         """.trimIndent()
         changeNotes = """
-            <b>1.1.1</b><br/>
+            <b>1.1.2</b><br/>
             <b>Bug Fixes</b><br/><ul>
-<li>guard marketplace publish with shell check instead of secrets in if</li>
-<li>use secrets context for marketplace publish condition</li>
+<li>align plugin id with Marketplace (com.openshell.idea.toolbar)</li>
 </ul>
         """.trimIndent()
         vendor {
