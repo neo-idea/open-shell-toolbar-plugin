@@ -358,9 +358,12 @@ jobs:
 
       # ── Publish to JetBrains Marketplace ─────────────────────
       - name: Publish to JetBrains Marketplace
-        if: ${{ secrets.JETBRAINS_TOKEN != '' }}
         env:
           JETBRAINS_TOKEN: ${{ secrets.JETBRAINS_TOKEN }}
           JETBRAINS_CHANNEL: ${{ vars.JETBRAINS_CHANNEL || 'stable' }}
         run: |
+          if [ -z "$JETBRAINS_TOKEN" ]; then
+            echo "JETBRAINS_TOKEN is not set; skipping marketplace publish."
+            exit 0
+          fi
           ./gradlew publishPlugin --no-daemon
