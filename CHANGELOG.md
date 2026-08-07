@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.1.3] - 2026-08-07
+
+## What's Changed
+
+**2 commits** since previous release.
+
+### 🐛 Bug Fixes
+- pin plugin verification to resolvable IDE builds (4f40ee3)
+- remove until-build cap and harden release pipeline (76714b3)
+
+---
+
+**Full Changelog**: https://github.com/neo-idea/open-shell-toolbar-plugin/compare/v1.1.2...v1.1.3
+
+
 ## [1.1.2] - 2026-08-07
 
 ## What's Changed
