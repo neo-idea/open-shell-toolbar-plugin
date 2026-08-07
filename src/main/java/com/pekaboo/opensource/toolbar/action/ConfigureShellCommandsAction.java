@@ -1,5 +1,6 @@
 package com.pekaboo.opensource.toolbar.action;
 
+import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -13,7 +14,7 @@ import org.jetbrains.annotations.NotNull;
 public class ConfigureShellCommandsAction extends AnAction {
 
     public ConfigureShellCommandsAction() {
-        super("Configure Shell Commands...", "Manage shell command configurations", null);
+        super("Configure Shell Commands...", "Manage shell command configurations", AllIcons.General.Settings);
     }
 
     @Override

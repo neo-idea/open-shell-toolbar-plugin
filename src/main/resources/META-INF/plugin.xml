@@ -51,8 +51,7 @@
                class="com.pekaboo.opensource.toolbar.action.ToolbarActionGroup"
                text="Shell Commands"
                description="Quick access shell commands"
-               icon="/META-INF/pluginIcon.svg"
-               popup="true">
+               icon="/META-INF/pluginIcon.svg">
             <add-to-group group-id="MainToolBarRight" anchor="last"/>
         </group>
     </actions>

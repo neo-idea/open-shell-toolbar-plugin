@@ -15,8 +15,9 @@ import java.util.List;
 public class ToolbarActionGroup extends DefaultActionGroup {
 
     public ToolbarActionGroup() {
-        super("Shell Commands", true);
-        setPopup(true);
+        // Non-popup group: command actions are rendered inline on the main
+        // toolbar as individual icon buttons, in configuration order.
+        super("Shell Commands", false);
     }
 
     @Override
