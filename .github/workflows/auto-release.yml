@@ -43,28 +43,49 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       # ── Version Bump ─────────────────────────────────────────
-      - name: Bump minor version
+      # Strategy: commit message prefix → bump level
+      #   feat!: / fix!: / BREAKING CHANGE → major
+      #   feat:                            → minor (reset patch=0)
+      #   fix: / anything else             → patch
+      - name: Bump version
         id: version
         run: |
-          # Read current version from build.gradle.kts
-          CURRENT=$(grep '^version = ' build.gradle.kts | sed "s/version = \"\(.*\)\"/\1/")
+          CURRENT=$(grep '^version = ' build.gradle.kts | sed 's/version = "\(.*\)"/\1/')
           echo "Current version: $CURRENT"
-
-          # Parse semver
           IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
 
-          # Increment minor version, reset patch to 0
-          NEW_MINOR=$((MINOR + 1))
-          NEW_VERSION="${MAJOR}.${NEW_MINOR}.0"
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -z "$PREV_TAG" ]; then
+            COMMIT_RANGE="HEAD"
+          else
+            COMMIT_RANGE="${PREV_TAG}..HEAD"
+          fi
 
-          echo "New version: $NEW_VERSION"
+          # Detect highest bump level from conventional commits
+          HAS_BREAKING=$(git log $COMMIT_RANGE --oneline 2>/dev/null \
+            | grep -Ei "^[a-f0-9]+ (feat!|fix!|[a-z]+!:|.*BREAKING CHANGE)" | wc -l | tr -d ' ')
+          HAS_FEAT=$(git log $COMMIT_RANGE --oneline --grep="^feat" 2>/dev/null | wc -l | tr -d ' ')
+
+          if [ "$HAS_BREAKING" -gt 0 ]; then
+            NEW_VERSION="$((MAJOR + 1)).0.0"
+            BUMP_KIND="major"
+          elif [ "$HAS_FEAT" -gt 0 ]; then
+            NEW_VERSION="${MAJOR}.$((MINOR + 1)).0"
+            BUMP_KIND="minor"
+          else
+            NEW_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))"
+            BUMP_KIND="patch"
+          fi
+
+          echo "Bump: $BUMP_KIND  →  $CURRENT → $NEW_VERSION"
           echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
-          echo "old_version=$CURRENT" >> "$GITHUB_OUTPUT"
+          echo "old_version=$CURRENT"     >> "$GITHUB_OUTPUT"
+          echo "prev_tag=$PREV_TAG"       >> "$GITHUB_OUTPUT"
 
           # Update build.gradle.kts
           sed -i "s/^version = \".*\"/version = \"${NEW_VERSION}\"/" build.gradle.kts
 
-          # Update plugin.xml version and since-build
+          # Update plugin.xml <version>
           PLUGIN_XML="src/main/resources/META-INF/plugin.xml"
           sed -i "s|<version>.*</version>|<version>${NEW_VERSION}</version>|" "$PLUGIN_XML"
 
@@ -72,122 +93,231 @@ jobs:
       - name: Generate changelog
         id: changelog
         run: |
-          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          NEW_VERSION="${{ steps.version.outputs.new_version }}"
+          PREV_TAG="${{ steps.version.outputs.prev_tag }}"
+          REPO="${{ github.repository }}"
+
           if [ -z "$PREV_TAG" ]; then
             COMMIT_RANGE="HEAD"
+            COMPARE_BASE=$(git rev-list --max-parents=0 HEAD | cut -c1-7)
           else
             COMMIT_RANGE="${PREV_TAG}..HEAD"
+            COMPARE_BASE="$PREV_TAG"
           fi
-          echo "Commit range: $COMMIT_RANGE"
+
+          # Use a random delimiter so changelog content can never truncate the heredoc
+          DELIM="CHANGELOG_$(openssl rand -hex 8)"
 
           {
-            echo "CHANGELOG<<EOF"
+            echo "CHANGELOG<<${DELIM}"
             echo "## What's Changed"
             echo ""
 
-            TOTAL_COMMITS=$(git log $COMMIT_RANGE --oneline 2>/dev/null | wc -l)
-            echo "**${TOTAL_COMMITS} commits** since previous release."
+            TOTAL=$(git log $COMMIT_RANGE --oneline 2>/dev/null | wc -l | tr -d ' ')
+            echo "**${TOTAL} commits** since previous release."
             echo ""
 
+            # Breaking changes
+            BREAKING=$(git log $COMMIT_RANGE --oneline 2>/dev/null \
+              | grep -Ei "^[a-f0-9]+ (feat!|fix!|[a-z]+!:|.*BREAKING CHANGE)" || true)
+            if [ -n "$BREAKING" ]; then
+              echo "### 💥 Breaking Changes"
+              echo "$BREAKING" | while read -r line; do
+                hash=$(echo "$line" | cut -d' ' -f1)
+                msg=$(echo "$line" | sed "s/^$hash //")
+                echo "- $msg ($hash)"
+              done
+              echo ""
+            fi
+
             # Features
-            FEATS=$(git log $COMMIT_RANGE --oneline --grep="^feat" 2>/dev/null || true)
+            FEATS=$(git log $COMMIT_RANGE --oneline --grep="^feat" 2>/dev/null \
+              | grep -v "^[a-f0-9]\+ feat!" || true)
             if [ -n "$FEATS" ]; then
               echo "### 🚀 New Features"
               echo "$FEATS" | while read -r line; do
                 hash=$(echo "$line" | cut -d' ' -f1)
                 msg=$(echo "$line" | sed "s/^$hash //;s/^feat[^:]*: //")
-                echo "- $msg (${hash})"
+                echo "- $msg ($hash)"
               done
               echo ""
             fi
 
             # Bug fixes
-            FIXES=$(git log $COMMIT_RANGE --oneline --grep="^fix" 2>/dev/null || true)
+            FIXES=$(git log $COMMIT_RANGE --oneline --grep="^fix" 2>/dev/null \
+              | grep -v "^[a-f0-9]\+ fix!" || true)
             if [ -n "$FIXES" ]; then
               echo "### 🐛 Bug Fixes"
               echo "$FIXES" | while read -r line; do
                 hash=$(echo "$line" | cut -d' ' -f1)
                 msg=$(echo "$line" | sed "s/^$hash //;s/^fix[^:]*: //")
-                echo "- $msg (${hash})"
+                echo "- $msg ($hash)"
               done
               echo ""
             fi
 
-            # Other changes
-            OTHER=$(git log $COMMIT_RANGE --oneline --invert-grep --grep="^feat\|^fix\|^chore\|^ci\|^style\|^test" 2>/dev/null || true)
+            # Other changes (exclude noisy types)
+            OTHER=$(git log $COMMIT_RANGE --oneline 2>/dev/null \
+              | grep -Ev "^[a-f0-9]+ (feat|fix|chore|ci|style|test|build|docs)[!:(]" || true)
             if [ -n "$OTHER" ]; then
               echo "### 📦 Other Changes"
               echo "$OTHER" | while read -r line; do
                 hash=$(echo "$line" | cut -d' ' -f1)
                 msg=$(echo "$line" | sed "s/^$hash //")
-                echo "- $msg (${hash})"
+                echo "- $msg ($hash)"
               done
               echo ""
             fi
 
             echo "---"
             echo ""
-            REPO="${{ github.repository }}"
-            echo "**Full Changelog**: https://github.com/${REPO}/compare/${PREV_TAG:-$(git rev-list --max-parents=0 HEAD | head -c7)}...v${{ steps.version.outputs.new_version }}"
-            echo "EOF"
+            echo "**Full Changelog**: https://github.com/${REPO}/compare/${COMPARE_BASE}...v${NEW_VERSION}"
+            echo "${DELIM}"
           } >> "$GITHUB_OUTPUT"
+
+          # Also emit a plain-text version for changeNotes (HTML, no markdown links)
+          DELIM2="CHANGENOTES_$(openssl rand -hex 8)"
+          {
+            echo "CHANGENOTES<<${DELIM2}"
+            if [ -n "$BREAKING" ]; then
+              echo "<b>Breaking Changes</b><br/><ul>"
+              echo "$BREAKING" | while read -r line; do
+                msg=$(echo "$line" | sed "s/^[a-f0-9]* //")
+                echo "<li>${msg}</li>"
+              done
+              echo "</ul>"
+            fi
+            if [ -n "$FEATS" ]; then
+              echo "<b>New Features</b><br/><ul>"
+              echo "$FEATS" | while read -r line; do
+                msg=$(echo "$line" | sed "s/^[a-f0-9]* //;s/^feat[^:]*: //")
+                echo "<li>${msg}</li>"
+              done
+              echo "</ul>"
+            fi
+            if [ -n "$FIXES" ]; then
+              echo "<b>Bug Fixes</b><br/><ul>"
+              echo "$FIXES" | while read -r line; do
+                msg=$(echo "$line" | sed "s/^[a-f0-9]* //;s/^fix[^:]*: //")
+                echo "<li>${msg}</li>"
+              done
+              echo "</ul>"
+            fi
+            echo "${DELIM2}"
+          } >> "$GITHUB_OUTPUT"
+
+      # ── Update changeNotes in build.gradle.kts ───────────────
+      - name: Patch changeNotes in build.gradle.kts
+        run: |
+          # Python reads all values from the env: block below — no shell interpolation needed.
+
+          # Replace the entire changeNotes block with current release notes
+          python3 - <<'PYEOF'
+          import re, os, sys
+
+          version  = os.environ.get("NEW_VERSION", "")
+          notes    = os.environ.get("NOTES", "").strip()
+
+          path = "build.gradle.kts"
+          text = open(path).read()
+
+          new_block = f'changeNotes = """\n            <b>{version}</b><br/>\n            {notes}\n        """.trimIndent()'
+          text = re.sub(
+              r'changeNotes\s*=\s*""".*?"""\s*\.trimIndent\(\)',
+              new_block,
+              text,
+              flags=re.DOTALL,
+          )
+          open(path, "w").write(text)
+          print("changeNotes patched.")
+          PYEOF
+        env:
+          NEW_VERSION: ${{ steps.version.outputs.new_version }}
+          NOTES: ${{ steps.changelog.outputs.CHANGENOTES }}
+
+      # ── Update <change-notes> in plugin.xml ──────────────────
+      - name: Patch change-notes in plugin.xml
+        run: |
+          # Python reads all values from the env: block below — no shell interpolation needed.
+
+          python3 - <<'PYEOF'
+          import re, os
+
+          version = os.environ.get("NEW_VERSION", "")
+          notes   = os.environ.get("NOTES", "").strip()
+          path    = os.environ.get("PLUGIN_XML", "src/main/resources/META-INF/plugin.xml")
+
+          text = open(path).read()
+          new_block = (
+              f"<change-notes><![CDATA[\n"
+              f"        <b>{version}</b><br/>\n"
+              f"        {notes}\n"
+              f"    ]]></change-notes>"
+          )
+          text = re.sub(
+              r'<change-notes>.*?</change-notes>',
+              new_block,
+              text,
+              flags=re.DOTALL,
+          )
+          open(path, "w").write(text)
+          print("change-notes patched.")
+          PYEOF
+        env:
+          NEW_VERSION: ${{ steps.version.outputs.new_version }}
+          NOTES: ${{ steps.changelog.outputs.CHANGENOTES }}
+          PLUGIN_XML: src/main/resources/META-INF/plugin.xml
 
       # ── Build Plugin ─────────────────────────────────────────
       - name: Build plugin
         run: |
           ./gradlew buildPlugin --no-daemon
 
-          # Verify distribution
-          DIST_FILE="build/distributions/open-shell-toolbar-plugin-*.zip"
-          if ls $DIST_FILE 1>/dev/null 2>&1; then
-            echo "Distribution created successfully"
-            ls -lh build/distributions/
-          else
+          DIST_FILE=$(ls build/distributions/open-shell-toolbar-plugin-*.zip 2>/dev/null | head -1)
+          if [ -z "$DIST_FILE" ]; then
             echo "::error::Plugin distribution not found"
             exit 1
           fi
+          echo "Distribution: $DIST_FILE"
+          ls -lh build/distributions/
 
       # ── Verify Plugin ────────────────────────────────────────
       - name: Verify plugin
         run: |
           ./gradlew verifyPlugin --no-daemon
 
-      # ── Commit Version Bump ──────────────────────────────────
-      - name: Commit version bump
-        run: |
-          git add build.gradle.kts src/main/resources/META-INF/plugin.xml
-          git commit -m "chore: release v${{ steps.version.outputs.new_version }} [skip ci]"
-          git push
-
-      # ── Create Tag ───────────────────────────────────────────
-      - name: Create git tag
-        run: |
-          git tag "v${{ steps.version.outputs.new_version }}"
-          git push origin "v${{ steps.version.outputs.new_version }}"
-
       # ── Update CHANGELOG.md ──────────────────────────────────
       - name: Update CHANGELOG.md
         run: |
           VERSION="${{ steps.version.outputs.new_version }}"
           DATE=$(date +%Y-%m-%d)
-          CHANGELOG_BODY="${{ steps.changelog.outputs.CHANGELOG }}"
 
           {
             echo "# Changelog"
             echo ""
             echo "## [${VERSION}] - ${DATE}"
             echo ""
-            echo "${CHANGELOG_BODY}"
+            echo "${{ steps.changelog.outputs.CHANGELOG }}"
             echo ""
+            # Append previous entries (strip the old "# Changelog" header line)
             if [ -f CHANGELOG.md ]; then
-              sed '1,/^$/d' CHANGELOG.md | tail -n +2
+              tail -n +2 CHANGELOG.md
             fi
           } > CHANGELOG_NEW.md
           mv CHANGELOG_NEW.md CHANGELOG.md
 
-          git add CHANGELOG.md
-          git commit -m "docs: update CHANGELOG for v${VERSION} [skip ci]"
+      # ── Single Commit + Tag ───────────────────────────────────
+      # All file mutations land in one commit to keep history clean.
+      - name: Commit, tag and push
+        run: |
+          VERSION="${{ steps.version.outputs.new_version }}"
+          git add build.gradle.kts \
+                  src/main/resources/META-INF/plugin.xml \
+                  CHANGELOG.md
+          git commit -m "chore: release v${VERSION} [skip ci]"
+          git tag "v${VERSION}"
           git push
+          git push origin "v${VERSION}"
 
       # ── Create GitHub Release ────────────────────────────────
       - name: Create GitHub Release

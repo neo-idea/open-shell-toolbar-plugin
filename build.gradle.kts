@@ -50,7 +50,7 @@ intellijPlatform {
         }
         ideaVersion {
             sinceBuild = "233"
-            untilBuild = "251.*"
+            // untilBuild omitted → Marketplace accepts all future IDE versions
         }
     }
 
@@ -74,7 +74,7 @@ tasks {
 
     patchPluginXml {
         sinceBuild = "233"
-        untilBuild = "251.*"
+        // untilBuild omitted → no upper bound, compatible with future IDE releases
     }
 
     signPlugin {
