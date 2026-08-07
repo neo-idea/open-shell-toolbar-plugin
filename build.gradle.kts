@@ -54,6 +54,12 @@ intellijPlatform {
         }
     }
 
+    pluginVerification {
+        ides {
+            recommended()
+        }
+    }
+
     buildSearchableOptions = true
 
     publishing {
