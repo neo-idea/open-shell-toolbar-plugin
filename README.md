@@ -1,113 +1,40 @@
-# Icon Configuration Manager
+# Open Shell Toolbar Plugin
 
-🎨 A beautiful and intuitive web application for managing icon configurations with automated GitHub deployment.
+🚀 IntelliJ IDEA plugin that adds a customizable shell command toolbar, tool window, and status bar widget for quick command execution.
 
 ## ✨ Features
 
-- **Modern UI Design**: Gradient backgrounds, smooth animations, and responsive layout
-- **Icon Preview**: Real-time icon preview in the table with support for emojis and image files
-- **Preset Icons**: Quick selection from a collection of preset emoji icons
-- **File Upload**: Support for uploading custom icon files (images, .icns, .ico)
-- **Clipboard Integration**: Paste icon markers directly from clipboard
-- **Import/Export**: Save and load configurations as JSON files
-- **Auto Deploy**: One-click deployment to GitHub with automated commit and push
-- **Responsive Design**: Works seamlessly on desktop and mobile devices
-- **Interactive Notifications**: Real-time feedback for all operations
+- **Toolbar Action Group**: Dynamic shell command buttons in the main toolbar
+- **Tool Window Panel**: Full-featured command manager with search, add/edit/delete, and context menu
+- **Status Bar Widget**: Quick command popup accessible from the status bar
+- **Settings Integration**: Configure commands via Settings > Tools > Shell Toolbar
+- **Variable Substitution**: Support for `{{rootPath}}`, `{{workspaceFolder}}`, `$HOME`, `$USER`, `$API_KEY`, `$(pwd)` and more
+- **JSON Import/Export**: Save and load configurations as JSON files
+- **Emoji Icon Picker**: Preset emoji icons for command buttons
+- **CI/CD Pipeline**: Auto version bump, changelog generation, and GitHub Release
 
-## 🚀 Quick Start
-
-### Local Development
+## 🔧 Build
 
 ```bash
-# Install dependencies
-npm install
+# Build with Gradle
+./gradlew build
 
-# Start local server
-npm start
+# The plugin zip will be in build/distributions/
 ```
 
-Then open http://localhost:8080 in your browser.
+## 📦 Installation
 
-### Deployment
+1. Build the plugin: `./gradlew build`
+2. In IntelliJ IDEA, go to **Settings > Plugins > ⚙️ > Install Plugin from Disk...**
+3. Select the built `.zip` file from `build/distributions/`
 
-```bash
-# Auto deploy to GitHub
-npm run deploy
-```
+## 🎯 Usage
 
-Or manually:
+1. Configure shell commands in **Settings > Tools > Shell Toolbar**
+2. Use the toolbar buttons for quick command execution
+3. Open the **Shell Toolbar** tool window for full command management
+4. Click the status bar widget for quick access
 
-```bash
-# Add changes
-git add .
+## 📄 License
 
-# Commit
-git commit -m "chore: update configuration"
-
-# Push to GitHub
-git push origin main
-```
-
-## 📖 Usage Guide
-
-1. **Add Configuration**
-   - Enter a title for your icon configuration
-   - Specify the command or script path
-   - Set the working directory (optional)
-   - Choose an icon (preset, file upload, or paste marker)
-   - Click "➕ Add Entry"
-
-2. **Edit Configuration**
-   - Click "✏️ Edit" on any row
-   - Modify the values in the form
-   - Click "➕ Add Entry" to save changes
-
-3. **Delete Configuration**
-   - Click "🗑️ Delete" on any row
-   - Confirm the deletion
-
-4. **Import/Export**
-   - Click "💾 Export JSON" to download current configuration
-   - Click "📥 Import JSON" to load a previously saved configuration
-
-5. **Deploy to GitHub**
-   - Click "🚀 Auto Deploy to GitHub" button
-   - The application will export the configuration and simulate the deployment process
-
-## 🛠️ Technologies
-
-- HTML5
-- CSS3 (Flexbox, Grid, Animations)
-- Vanilla JavaScript
-- Git/GitHub for version control
-
-## 📁 Project Structure
-
-```
-icon-config-manager/
-├── index.html          # Main application file
-├── package.json        # NPM configuration and scripts
-├── README.md          # This file
-└── icon-config.json   # Exported configuration (generated)
-```
-
-## 🎨 Customization
-
-You can easily customize the application by modifying:
-
-- **Colors**: Update the gradient colors in the CSS
-- **Preset Icons**: Modify the `presetIcons` array in the JavaScript
-- **Layout**: Adjust the grid and flexbox settings
-- **Notifications**: Customize notification messages and timing
-
-## 📝 License
-
-MIT License - feel free to use this project for your needs!
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
----
-
-Made with ❤️ using modern web technologies
+MIT
