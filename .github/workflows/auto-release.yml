@@ -89,6 +89,10 @@ jobs:
           PLUGIN_XML="src/main/resources/META-INF/plugin.xml"
           sed -i "s|<version>.*</version>|<version>${NEW_VERSION}</version>|" "$PLUGIN_XML"
 
+          # Update pom.xml version
+          if [ -f pom.xml ]; then
+            python3 -c "import re; p = 'pom.xml'; t = open(p).read(); t = re.sub(r'(<artifactId>open-shell-toolbar-plugin</artifactId>\s*<version>).*?(</version>)', r'\1' + '${NEW_VERSION}' + r'\2', t, flags=re.DOTALL); open(p, 'w').write(t)"
+          fi
       # ── Generate Changelog ───────────────────────────────────
       - name: Generate changelog
         id: changelog
@@ -314,6 +318,9 @@ jobs:
           git add build.gradle.kts \
                   src/main/resources/META-INF/plugin.xml \
                   CHANGELOG.md
+          if [ -f pom.xml ]; then
+            git add pom.xml
+          fi
           git commit -m "chore: release v${VERSION} [skip ci]"
           git tag "v${VERSION}"
           git push
