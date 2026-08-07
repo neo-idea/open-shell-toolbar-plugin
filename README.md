@@ -35,6 +35,27 @@
 3. Open the **Shell Toolbar** tool window for full command management
 4. Click the status bar widget for quick access
 
+## ❓ FAQ
+
+### Why are the command buttons not visible on the main toolbar?
+
+The buttons are registered on the right side of the main toolbar
+(`MainToolBarRight`). If they are missing:
+
+- **New UI hides the main toolbar by default** — enable it via
+  `View > Appearance > Toolbar` (or `Settings > Appearance & Behavior >
+  Appearance > Show toolbar in the main window`).
+- On narrow windows the buttons may be folded into the toolbar overflow
+  menu — click the **⋮** (three dots) at the right end of the toolbar and
+  look for the "Shell Commands" group.
+- Confirm the installed version is **1.2.0+** (`Settings > Plugins >
+  Installed > Open Shell Toolbar`), since versions before 1.2.0 render as a
+  single dropdown icon instead of individual buttons.
+
+The plugin also provides two other entry points that do not depend on the
+toolbar being visible: the **Shell Toolbar** tool window on the right edge and
+the **Shell Commands** status bar widget.
+
 ## 📄 License
 
 MIT
