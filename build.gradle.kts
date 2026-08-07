@@ -54,7 +54,10 @@ intellijPlatform {
 
     pluginVerification {
         ides {
-            recommended()
+            // Pin to resolvable IDE builds: recommended() resolves versions
+            // that no longer exist on download.jetbrains.com (e.g. 2025.3).
+            ide(IntelliJPlatformType.IntellijIdeaCommunity, "2023.3")
+            ide(IntelliJPlatformType.IntellijIdeaCommunity, "2025.2")
         }
     }
 
