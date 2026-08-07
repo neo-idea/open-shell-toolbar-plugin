@@ -358,7 +358,7 @@ jobs:
 
       # ── Publish to JetBrains Marketplace ─────────────────────
       - name: Publish to JetBrains Marketplace
-        if: env.JETBRAINS_TOKEN != ''
+        if: ${{ secrets.JETBRAINS_TOKEN != '' }}
         env:
           JETBRAINS_TOKEN: ${{ secrets.JETBRAINS_TOKEN }}
           JETBRAINS_CHANNEL: ${{ vars.JETBRAINS_CHANNEL || 'stable' }}
