@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.2.0] - 2026-08-07
+
+## What's Changed
+
+**1 commits** since previous release.
+
+### 🚀 New Features
+- render shell command buttons inline on main toolbar (951ea1e)
+
+---
+
+**Full Changelog**: https://github.com/neo-idea/open-shell-toolbar-plugin/compare/v1.1.3...v1.2.0
+
+
 ## [1.1.3] - 2026-08-07
 
 ## What's Changed

@@ -12,10 +12,9 @@
     <depends>com.intellij.modules.platform</depends>
 
     <change-notes><![CDATA[
-        <b>1.1.3</b><br/>
-        <b>Bug Fixes</b><br/><ul>
-<li>pin plugin verification to resolvable IDE builds</li>
-<li>remove until-build cap and harden release pipeline</li>
+        <b>1.2.0</b><br/>
+        <b>New Features</b><br/><ul>
+<li>render shell command buttons inline on main toolbar</li>
 </ul>
     ]]></change-notes>
 
