@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.1.1] - 2026-08-07
+
+## What's Changed
+
+**2 commits** since previous release.
+
+### 🐛 Bug Fixes
+- guard marketplace publish with shell check instead of secrets in if (21d562f)
+- use secrets context for marketplace publish condition (cd6da7d)
+
+---
+
+**Full Changelog**: https://github.com/neo-idea/open-shell-toolbar-plugin/compare/v1.1.0...v1.1.1
+
+
 ## [1.1.0] - 2026-08-07
 
 ## What's Changed
