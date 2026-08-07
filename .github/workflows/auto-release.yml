@@ -11,7 +11,7 @@ permissions:
 env:
   JAVA_VERSION: '17'
   JAVA_DISTRIBUTION: 'temurin'
-  PLUGIN_ID: 'com.pekaboo.opensource.open-shell-toolbar'
+  PLUGIN_ID: 'com.openshell.idea.toolbar'
 
 jobs:
   build-and-release:

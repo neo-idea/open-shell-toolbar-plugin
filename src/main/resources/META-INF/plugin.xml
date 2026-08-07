@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <idea-plugin>
-    <id>com.pekaboo.opensource.open-shell-toolbar</id>
+    <id>com.openshell.idea.toolbar</id>
     <name>Open Shell Toolbar</name>
-    <vendor url="https://github.com/pekaboo">Pekaboo</vendor>
+    <vendor url="https://github.com/neo-idea/open-shell-toolbar-plugin">talentneo</vendor>
 
     <description><![CDATA[
         Customizable toolbar plugin for IntelliJ IDEA.

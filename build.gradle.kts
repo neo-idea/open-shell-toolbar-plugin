@@ -29,7 +29,7 @@ dependencies {
 
 intellijPlatform {
     pluginConfiguration {
-        id = "com.pekaboo.opensource.open-shell-toolbar"
+        id = "com.openshell.idea.toolbar"
         name = "Open Shell Toolbar"
         version = project.version.toString()
         description = """
@@ -44,8 +44,8 @@ intellijPlatform {
 </ul>
         """.trimIndent()
         vendor {
-            name = "Pekaboo"
-            url = "https://github.com/pekaboo"
+            name = "talentneo"
+            url = "https://github.com/neo-idea/open-shell-toolbar-plugin"
         }
         ideaVersion {
             sinceBuild = "233"
