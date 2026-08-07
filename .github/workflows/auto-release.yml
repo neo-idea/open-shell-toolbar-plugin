@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -20,21 +21,21 @@ jobs:
     steps:
       # ── Checkout ──────────────────────────────────────────────
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
       # ── Setup JDK ────────────────────────────────────────────
       - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: ${{ env.JAVA_DISTRIBUTION }}
 
       # ── Setup Gradle ─────────────────────────────────────────
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       # ── Configure Git ────────────────────────────────────────
       - name: Configure Git
@@ -84,15 +85,6 @@ jobs:
 
           # Update build.gradle.kts
           sed -i "s/^version = \".*\"/version = \"${NEW_VERSION}\"/" build.gradle.kts
-
-          # Update plugin.xml <version>
-          PLUGIN_XML="src/main/resources/META-INF/plugin.xml"
-          sed -i "s|<version>.*</version>|<version>${NEW_VERSION}</version>|" "$PLUGIN_XML"
-
-          # Update pom.xml version
-          if [ -f pom.xml ]; then
-            python3 -c "import re; p = 'pom.xml'; t = open(p).read(); t = re.sub(r'(<artifactId>open-shell-toolbar-plugin</artifactId>\s*<version>).*?(</version>)', r'\g<1>' + '${NEW_VERSION}' + r'\g<2>', t, flags=re.DOTALL); open(p, 'w').write(t)"
-          fi
       # ── Generate Changelog ───────────────────────────────────
       - name: Generate changelog
         id: changelog
@@ -318,9 +310,6 @@ jobs:
           git add build.gradle.kts \
                   src/main/resources/META-INF/plugin.xml \
                   CHANGELOG.md
-          if [ -f pom.xml ]; then
-            git add pom.xml
-          fi
           git commit -m "chore: release v${VERSION} [skip ci]"
           git tag "v${VERSION}"
           git push
@@ -328,7 +317,7 @@ jobs:
 
       # ── Create GitHub Release ────────────────────────────────
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{ steps.version.outputs.new_version }}
           name: "Open Shell Toolbar v${{ steps.version.outputs.new_version }}"
@@ -358,6 +347,7 @@ jobs:
 
       # ── Publish to JetBrains Marketplace ─────────────────────
       - name: Publish to JetBrains Marketplace
+        continue-on-error: true
         env:
           JETBRAINS_TOKEN: ${{ secrets.JETBRAINS_TOKEN }}
           JETBRAINS_CHANNEL: ${{ vars.JETBRAINS_CHANNEL || 'stable' }}

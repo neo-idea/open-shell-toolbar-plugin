@@ -11,7 +11,6 @@
 
     <depends>com.intellij.modules.platform</depends>
 
-    <version>1.1.2</version>
     <change-notes><![CDATA[
         <b>1.1.2</b><br/>
         <b>Bug Fixes</b><br/><ul>

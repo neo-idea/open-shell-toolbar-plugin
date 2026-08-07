@@ -6,7 +6,7 @@ plugins {
     id("org.jetbrains.intellij.platform") version "2.5.0"
 }
 
-group = "com.pekaboo.opensource"
+group = "com.openshell.idea"
 version = "1.1.2"
 
 repositories {
@@ -48,7 +48,7 @@ intellijPlatform {
         }
         ideaVersion {
             sinceBuild = "233"
-            // untilBuild omitted → Marketplace accepts all future IDE versions
+            untilBuild = provider { null }
         }
     }
 
