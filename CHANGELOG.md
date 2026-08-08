@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.2.1] - 2026-08-08
+
+## What's Changed
+
+**2 commits** since previous release.
+
+### 🐛 Bug Fixes
+- register toolbar buttons on MainToolBar for reliable rendering (8de59e4)
+
+---
+
+**Full Changelog**: https://github.com/neo-idea/open-shell-toolbar-plugin/compare/v1.2.0...v1.2.1
+
+
 ## [1.2.0] - 2026-08-07
 
 ## What's Changed
