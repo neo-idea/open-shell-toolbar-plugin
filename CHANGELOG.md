@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.3.2] - 2026-08-08
+
+## What's Changed
+
+**1 commits** since previous release.
+
+### 🐛 Bug Fixes
+- harden production reliability (async execution, service resolution, empty config persistence) (cd3e39c)
+
+---
+
+**Full Changelog**: https://github.com/neo-idea/open-shell-toolbar-plugin/compare/v1.3.1...v1.3.2
+
+
 ## [1.3.1] - 2026-08-08
 
 ## What's Changed
