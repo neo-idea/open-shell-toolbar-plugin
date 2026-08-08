@@ -38,6 +38,9 @@
                                 implementationClass="com.pekaboo.opensource.toolbar.statusbar.CommandStatusBarWidgetFactory"
                                 order="after PositionPanel"/>
 
+        <!-- Best-effort MainToolBarRight registration (group exists on older IDE builds only) -->
+        <startupActivity implementation="com.pekaboo.opensource.toolbar.action.MainToolBarRightRegistrar"/>
+
         <!-- Settings Configurable -->
         <projectConfigurable parentId="tools"
                              instance="com.pekaboo.opensource.toolbar.settings.ConfigSettingsConfigurable"
@@ -51,10 +54,9 @@
                text="Shell Commands"
                description="Quick access shell commands"
                icon="/META-INF/pluginIcon.svg">
-            <!-- MainToolBar renders non-popup groups inline on every IDE version;
-                 MainToolBarRight is unreliable in newer New UI builds. -->
+            <!-- MainToolBar is the only group present on every IDE version
+                 (2026.1+ removed MainToolBarRight; registered dynamically). -->
             <add-to-group group-id="MainToolBar" anchor="last"/>
-            <add-to-group group-id="MainToolBarRight" anchor="last"/>
         </group>
     </actions>
 
