@@ -192,6 +192,11 @@ public class CommandExecutor {
         if (enrichedPath != null) {
             return enrichedPath;
         }
+        if (SystemInfo.isWindows) {
+            // cmd.exe inherits the IDE environment; no login-shell probing needed.
+            enrichedPath = "";
+            return enrichedPath;
+        }
         String shell = System.getenv("SHELL");
         if (shell == null || shell.isEmpty()) {
             shell = SystemInfo.isMac ? "/bin/zsh" : "/bin/bash";
@@ -202,8 +207,14 @@ public class CommandExecutor {
             Process probe = new ProcessBuilder(shell, "-l", "-i", "-c",
                     "echo \"" + PATH_MARKER_START + "$PATH" + PATH_MARKER_END + "\"")
                     .redirectErrorStream(true).start();
+            // Wait first (with timeout) and force-kill on stall so a slow/interactive
+            // rc file can never block the background thread forever. The marker output
+            // is short enough that it never fills the OS pipe buffer.
+            if (!probe.waitFor(5, TimeUnit.SECONDS)) {
+                probe.destroyForcibly();
+                LOG.warn("PATH probe timed out from " + shell);
+            }
             String output = readAll(probe);
-            probe.waitFor(5, TimeUnit.SECONDS);
             int start = output.indexOf(PATH_MARKER_START);
             int end = output.indexOf(PATH_MARKER_END);
             if (start >= 0 && end > start) {
