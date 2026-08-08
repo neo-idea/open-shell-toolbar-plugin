@@ -42,7 +42,9 @@ public class EmojiIcon implements Icon {
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-        Font font = new Font("Segoe UI Emoji", Font.PLAIN, size - 2);
+        // Use a logical font family so the platform falls back to its emoji
+        // font (Apple Color Emoji / Segoe UI Emoji) on every OS.
+        Font font = new Font(Font.SANS_SERIF, Font.PLAIN, size - 2);
         g2d.setFont(font);
         g2d.setColor(JBColor.BLACK);
 

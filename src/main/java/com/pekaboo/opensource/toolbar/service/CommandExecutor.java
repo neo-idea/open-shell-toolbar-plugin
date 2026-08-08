@@ -4,6 +4,8 @@ import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
+import com.intellij.openapi.application.Application;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
@@ -49,10 +51,26 @@ public class CommandExecutor {
             return;
         }
 
-        try {
-            String command = substituteVariables(config.getCommand(), project);
-            String workingDir = substituteVariables(config.getWorkingDir(), project);
+        if (config.getCommand() == null || config.getCommand().trim().isEmpty()) {
+            showNotification("Execution Failed", "The command '" + config.getTitle() + "' is empty.",
+                    NotificationType.ERROR, project);
+            return;
+        }
 
+        // Resolve variables before dispatching to the background thread.
+        String resolvedCommand = substituteVariables(config.getCommand(), project);
+        String resolvedWorkingDir = substituteVariables(config.getWorkingDir(), project);
+
+        Application application = ApplicationManager.getApplication();
+        application.executeOnPooledThread(() -> runProcess(config, resolvedCommand, resolvedWorkingDir, project, application));
+    }
+
+    private void runProcess(@NotNull ShellCommandConfig config,
+                            @NotNull String command,
+                            @Nullable String workingDir,
+                            @Nullable Project project,
+                            @NotNull Application application) {
+        try {
             ProcessBuilder processBuilder = new ProcessBuilder();
 
             // Set up shell command based on OS
@@ -73,7 +91,7 @@ public class CommandExecutor {
             processBuilder.redirectErrorStream(true);
 
             LOG.info("Executing command: " + String.join(" ", commandList));
-            if (workingDir != null) {
+            if (workingDir != null && !workingDir.isEmpty()) {
                 LOG.info("Working directory: " + workingDir);
             }
 
@@ -92,44 +110,29 @@ public class CommandExecutor {
 
             int exitCode = process.waitFor();
 
-            if (exitCode == 0) {
-                String successMessage = output.length() > 0
-                        ? output.toString().trim()
-                        : "Command executed successfully";
-                showNotification(
-                        "✓ " + config.getTitle(),
-                        truncate(successMessage, 200),
-                        NotificationType.INFORMATION,
-                        project
-                );
-            } else {
-                String errorMessage = output.length() > 0
-                        ? output.toString().trim()
-                        : "Command failed with exit code: " + exitCode;
-                showNotification(
-                        "✗ " + config.getTitle(),
-                        truncate(errorMessage, 200),
-                        NotificationType.ERROR,
-                        project
-                );
-            }
+            String message = output.toString().trim();
+            boolean success = exitCode == 0;
+            String title = (success ? "✓ " : "✗ ") + config.getTitle();
+            String content = message.isEmpty()
+                    ? (success ? "Command executed successfully" : "Command failed with exit code: " + exitCode)
+                    : truncate(message, 200);
+            NotificationType type = success ? NotificationType.INFORMATION : NotificationType.ERROR;
+            application.invokeLater(() -> showNotification(title, content, type, project));
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            showNotification(
+            application.invokeLater(() -> showNotification(
                     "Command Interrupted",
                     "The command '" + config.getTitle() + "' was interrupted.",
                     NotificationType.WARNING,
-                    project
-            );
+                    project));
             LOG.warn("Command interrupted: " + config.getTitle(), e);
         } catch (Exception e) {
-            showNotification(
+            application.invokeLater(() -> showNotification(
                     "Execution Failed",
                     "Failed to execute '" + config.getTitle() + "': " + e.getMessage(),
                     NotificationType.ERROR,
-                    project
-            );
+                    project));
             LOG.error("Failed to execute command: " + config.getTitle(), e);
         }
     }

@@ -50,7 +50,7 @@ public class ToolbarConfigService {
      */
     public static class State {
         @SuppressWarnings("unused")
-        public List<ShellCommandConfig> configs = new ArrayList<>();
+        public List<ShellCommandConfig> configs;
     }
 
     private final State state = new State();
@@ -68,10 +68,7 @@ public class ToolbarConfigService {
      */
     public void loadState(@NotNull State state) {
         synchronized (this) {
-            if (state.configs != null && !state.configs.isEmpty()) {
-                this.state.configs.clear();
-                this.state.configs.addAll(state.configs);
-            }
+            this.state.configs = state.configs != null ? new ArrayList<>(state.configs) : new ArrayList<>();
         }
     }
 
@@ -93,6 +90,7 @@ public class ToolbarConfigService {
      * @param config The configuration to add
      */
     public synchronized void addConfig(@NotNull ShellCommandConfig config) {
+        ensureDefaultConfigs();
         state.configs.add(config);
     }
 
@@ -103,6 +101,7 @@ public class ToolbarConfigService {
      * @return true if removed, false if not found
      */
     public synchronized boolean removeConfig(@NotNull String id) {
+        ensureDefaultConfigs();
         return state.configs.removeIf(config -> id.equals(config.getId()));
     }
 
@@ -113,6 +112,7 @@ public class ToolbarConfigService {
      * @return true if updated, false if not found
      */
     public synchronized boolean updateConfig(@NotNull ShellCommandConfig config) {
+        ensureDefaultConfigs();
         for (int i = 0; i < state.configs.size(); i++) {
             if (state.configs.get(i).getId().equals(config.getId())) {
                 state.configs.set(i, config);
@@ -130,6 +130,7 @@ public class ToolbarConfigService {
      */
     @Nullable
     public synchronized ShellCommandConfig getConfigById(@NotNull String id) {
+        ensureDefaultConfigs();
         return state.configs.stream()
                 .filter(config -> id.equals(config.getId()))
                 .findFirst()
@@ -156,9 +157,6 @@ public class ToolbarConfigService {
     private synchronized void ensureDefaultConfigs() {
         if (state.configs == null) {
             state.configs = new ArrayList<>();
-        }
-
-        if (state.configs.isEmpty()) {
             // Add sample default configurations
             state.configs.add(createDefaultConfig(
                     "open-terminal",
@@ -205,6 +203,7 @@ public class ToolbarConfigService {
      * Use with caution - this cannot be undone.
      */
     public synchronized void clearAllConfigs() {
+        ensureDefaultConfigs();
         state.configs.clear();
     }
 
@@ -214,6 +213,7 @@ public class ToolbarConfigService {
      * @return Number of configurations
      */
     public synchronized int getConfigCount() {
+        ensureDefaultConfigs();
         return state.configs.size();
     }
 
@@ -224,6 +224,7 @@ public class ToolbarConfigService {
      * @return true if export succeeded, false otherwise
      */
     public synchronized boolean exportToJson(@NotNull String filePath) {
+        ensureDefaultConfigs();
         try {
             Path path = Paths.get(filePath);
             // Ensure parent directory exists
@@ -250,6 +251,7 @@ public class ToolbarConfigService {
      * @return true if import succeeded, false otherwise
      */
     public synchronized boolean importFromJson(@NotNull String filePath) {
+        ensureDefaultConfigs();
         try (FileReader reader = new FileReader(filePath)) {
             Type listType = new TypeToken<List<ShellCommandConfig>>() {}.getType();
             List<ShellCommandConfig> imported = GSON.fromJson(reader, listType);
@@ -274,6 +276,7 @@ public class ToolbarConfigService {
      */
     @NotNull
     public synchronized String exportToJsonString() {
+        ensureDefaultConfigs();
         return GSON.toJson(state.configs);
     }
 
@@ -285,6 +288,7 @@ public class ToolbarConfigService {
      * @return true if import succeeded, false otherwise
      */
     public synchronized boolean importFromJsonString(@NotNull String jsonString) {
+        ensureDefaultConfigs();
         try {
             Type listType = new TypeToken<List<ShellCommandConfig>>() {}.getType();
             List<ShellCommandConfig> imported = GSON.fromJson(jsonString, listType);

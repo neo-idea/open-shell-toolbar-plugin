@@ -40,9 +40,11 @@ public class CustomToolbarAction extends AnAction {
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
         Project project = e.getProject();
-        CommandExecutor executor = project != null
-                ? project.getService(CommandExecutor.class)
-                : com.intellij.openapi.application.ApplicationManager.getApplication().getService(CommandExecutor.class);
+        // CommandExecutor is an application-level service; resolve it from the
+        // application container regardless of the current project context.
+        CommandExecutor executor = com.intellij.openapi.application.ApplicationManager
+                .getApplication()
+                .getService(CommandExecutor.class);
 
         if (executor != null) {
             executor.executeCommand(config, project);

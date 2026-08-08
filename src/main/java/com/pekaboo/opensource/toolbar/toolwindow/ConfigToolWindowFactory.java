@@ -759,7 +759,8 @@ public class ConfigToolWindowFactory implements ToolWindowFactory {
             for (String emoji : emojis) {
                 JButton button = new JButton(emoji);
                 button.setPreferredSize(new Dimension(32, 28));
-                button.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 14));
+                // Logical font family: the platform falls back to its emoji font on any OS.
+                button.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 14));
                 button.setFocusable(false);
                 button.addActionListener(e -> iconField.setText(emoji));
                 panel.add(button);
