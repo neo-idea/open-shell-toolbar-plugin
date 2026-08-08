@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.3.1] - 2026-08-08
+
+## What's Changed
+
+**1 commits** since previous release.
+
+### 🐛 Bug Fixes
+- register MainToolBarRight dynamically to avoid PluginException on 2026.1 (4aa3f78)
+
+---
+
+**Full Changelog**: https://github.com/neo-idea/open-shell-toolbar-plugin/compare/v1.3.0...v1.3.1
+
+
 ## [1.3.0] - 2026-08-08
 
 ## What's Changed
