@@ -12,9 +12,9 @@
     <depends>com.intellij.modules.platform</depends>
 
     <change-notes><![CDATA[
-        <b>1.3.2</b><br/>
+        <b>1.3.3</b><br/>
         <b>Bug Fixes</b><br/><ul>
-<li>harden production reliability (async execution, service resolution, empty config persistence)</li>
+<li>run commands in user's login shell with full PATH (fix pnpm/node not found)</li>
 </ul>
     ]]></change-notes>
 

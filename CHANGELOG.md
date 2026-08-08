@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.3.3] - 2026-08-08
+
+## What's Changed
+
+**1 commits** since previous release.
+
+### 🐛 Bug Fixes
+- run commands in user's login shell with full PATH (fix pnpm/node not found) (c0bb041)
+
+---
+
+**Full Changelog**: https://github.com/neo-idea/open-shell-toolbar-plugin/compare/v1.3.2...v1.3.3
+
+
 ## [1.3.2] - 2026-08-08
 
 ## What's Changed
