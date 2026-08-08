@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.3.0] - 2026-08-08
+
+## What's Changed
+
+**1 commits** since previous release.
+
+### 🚀 New Features
+- show toolbar buttons in both MainToolBar and MainToolBarRight (b4bf56c)
+
+---
+
+**Full Changelog**: https://github.com/neo-idea/open-shell-toolbar-plugin/compare/v1.2.1...v1.3.0
+
+
 ## [1.2.1] - 2026-08-08
 
 ## What's Changed

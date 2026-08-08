@@ -12,9 +12,9 @@
     <depends>com.intellij.modules.platform</depends>
 
     <change-notes><![CDATA[
-        <b>1.2.1</b><br/>
-        <b>Bug Fixes</b><br/><ul>
-<li>register toolbar buttons on MainToolBar for reliable rendering</li>
+        <b>1.3.0</b><br/>
+        <b>New Features</b><br/><ul>
+<li>show toolbar buttons in both MainToolBar and MainToolBarRight</li>
 </ul>
     ]]></change-notes>
 
