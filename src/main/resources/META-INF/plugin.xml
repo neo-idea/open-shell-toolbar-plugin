@@ -54,6 +54,7 @@
             <!-- MainToolBar renders non-popup groups inline on every IDE version;
                  MainToolBarRight is unreliable in newer New UI builds. -->
             <add-to-group group-id="MainToolBar" anchor="last"/>
+            <add-to-group group-id="MainToolBarRight" anchor="last"/>
         </group>
     </actions>
 
