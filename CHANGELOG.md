@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.3.4] - 2026-08-08
+
+## What's Changed
+
+**1 commits** since previous release.
+
+### 🐛 Bug Fixes
+- harden PATH probe (skip on windows, timeout guard against rc-file hang) (2644724)
+
+---
+
+**Full Changelog**: https://github.com/neo-idea/open-shell-toolbar-plugin/compare/v1.3.3...v1.3.4
+
+
 ## [1.3.3] - 2026-08-08
 
 ## What's Changed
