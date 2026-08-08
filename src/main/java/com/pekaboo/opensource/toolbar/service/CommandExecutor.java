@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Application-level service for executing shell commands.
@@ -34,9 +35,17 @@ public class CommandExecutor {
 
     private static final Logger LOG = Logger.getInstance(CommandExecutor.class);
     private static final String NOTIFICATION_GROUP_ID = "Shell Toolbar Notifications";
+    private static final String PATH_MARKER_START = "__OST_PATH_START__";
+    private static final String PATH_MARKER_END = "__OST_PATH_END__";
 
     // Pattern for $(command) substitution
     private static final Pattern COMMAND_SUBSTITUTION = Pattern.compile("\\$\\(([^)]+)\\)");
+
+    // Cached full PATH resolved from the user's interactive login shell. GUI-launched
+    // IDEs inherit a minimal PATH that misses node/nvm/volta/homebrew binaries, so
+    // commands like pnpm/npm/node are not found. This is resolved once and injected
+    // into every spawned process.
+    private static volatile String enrichedPath;
 
     /**
      * Executes a shell command based on the provided configuration.
@@ -76,6 +85,16 @@ public class CommandExecutor {
             // Set up shell command based on OS
             List<String> commandList = buildShellCommand(command);
             processBuilder.command(commandList);
+
+            // Inject the user's full PATH so binaries installed via nvm/volta/homebrew/
+            // corepack (e.g. pnpm) are resolvable even when the IDE was launched from
+            // the GUI and inherited a minimal environment.
+            String path = getEnrichedPath();
+            if (path != null && !path.isEmpty()) {
+                Map<String, String> env = processBuilder.environment();
+                String current = env.get("PATH");
+                env.put("PATH", path + (current != null && !current.isEmpty() ? File.pathSeparator + current : ""));
+            }
 
             // Set working directory if specified
             if (workingDir != null && !workingDir.isEmpty()) {
@@ -149,13 +168,67 @@ public class CommandExecutor {
             result.add("cmd");
             result.add("/c");
         } else {
-            // Unix-like: use bash -c
-            result.add("bash");
+            // Use the user's login shell so ~/.zprofile/~/.bash_profile is loaded.
+            String shell = System.getenv("SHELL");
+            if (shell == null || shell.isEmpty()) {
+                shell = SystemInfo.isMac ? "/bin/zsh" : "/bin/bash";
+            }
+            result.add(shell);
+            result.add("-l");
             result.add("-c");
         }
 
         result.add(command);
         return result;
+    }
+
+    /**
+     * Resolves the full PATH from the user's interactive login shell (cached).
+     * Falls back to null if it cannot be determined, in which case the inherited
+     * environment is used unchanged.
+     */
+    @Nullable
+    private static String getEnrichedPath() {
+        if (enrichedPath != null) {
+            return enrichedPath;
+        }
+        String shell = System.getenv("SHELL");
+        if (shell == null || shell.isEmpty()) {
+            shell = SystemInfo.isMac ? "/bin/zsh" : "/bin/bash";
+        }
+        try {
+            // Interactive login shell loads ~/.zshrc/~/.bashrc so PATH set up by
+            // nvm/volta/homebrew is captured.
+            Process probe = new ProcessBuilder(shell, "-l", "-i", "-c",
+                    "echo \"" + PATH_MARKER_START + "$PATH" + PATH_MARKER_END + "\"")
+                    .redirectErrorStream(true).start();
+            String output = readAll(probe);
+            probe.waitFor(5, TimeUnit.SECONDS);
+            int start = output.indexOf(PATH_MARKER_START);
+            int end = output.indexOf(PATH_MARKER_END);
+            if (start >= 0 && end > start) {
+                enrichedPath = output.substring(start + PATH_MARKER_START.length(), end).trim();
+            }
+        } catch (Exception e) {
+            LOG.warn("Could not resolve enriched PATH from " + shell, e);
+        }
+        if (enrichedPath == null) {
+            enrichedPath = "";
+        }
+        return enrichedPath;
+    }
+
+    @NotNull
+    private static String readAll(@NotNull Process process) throws Exception {
+        StringBuilder sb = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line).append('\n');
+            }
+        }
+        return sb.toString();
     }
 
     /**
