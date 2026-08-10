@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "com.openshell.idea"
-version = "1.4.0"
+version = "1.4.1"
 
 repositories {
     mavenCentral()
@@ -37,9 +37,9 @@ intellijPlatform {
             Add shell command buttons to toolbar, sidebar, and status bar for quick access to frequently used commands.
         """.trimIndent()
         changeNotes = """
-            <b>1.4.0</b><br/>
-            <b>New Features</b><br/><ul>
-<li>popup toolbar icon + open-in-terminal mode</li>
+            <b>1.4.1</b><br/>
+            <b>Bug Fixes</b><br/><ul>
+<li>try MainToolbarRight (lowercase b) for New UI toolbar placement</li>
 </ul>
         """.trimIndent()
         vendor {

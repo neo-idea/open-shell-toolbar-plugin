@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.4.1] - 2026-08-10
+
+## What's Changed
+
+**1 commits** since previous release.
+
+### 🐛 Bug Fixes
+- try MainToolbarRight (lowercase b) for New UI toolbar placement (c197a9b)
+
+---
+
+**Full Changelog**: https://github.com/neo-idea/open-shell-toolbar-plugin/compare/v1.4.0...v1.4.1
+
+
 ## [1.4.0] - 2026-08-10
 
 ## What's Changed
