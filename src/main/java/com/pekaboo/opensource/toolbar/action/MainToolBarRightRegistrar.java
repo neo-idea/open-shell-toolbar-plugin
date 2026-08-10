@@ -1,5 +1,8 @@
 package com.pekaboo.opensource.toolbar.action;
 
+import com.intellij.notification.NotificationGroupManager;
+import com.intellij.notification.NotificationType;
+import com.intellij.notification.Notifications;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
@@ -9,76 +12,79 @@ import com.intellij.openapi.startup.StartupActivity;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Ensures the shell-command icon appears in the best available toolbar
- * location across all IntelliJ versions and UI modes (Classic + New UI).
+ * Registers the shell-command icon in every toolbar group that exists
+ * on the current IDE build, without removing the static fallback.
  *
- * <p>IntelliJ renamed the toolbar groups when the New UI shipped:
- * <ul>
- *   <li><b>Classic UI</b>: {@code MainToolBar}, {@code MainToolBarRight}</li>
- *   <li><b>New UI (2024+)</b>: {@code MainToolbarRight} (lowercase 'b')</li>
- * </ul>
- *
- * The group is statically registered in {@code MainToolBar} via plugin.xml
- * as a universal fallback. At startup this registrar tries to MOVE it to
- * the best available group for the current UI mode.</p>
+ * <p>This is additive: the group is statically in MainToolBar (plugin.xml),
+ * and we ADD it to New-UI groups here. In Classic UI the New-UI groups
+ * don't exist so no duplicate; in New UI MainToolBar is hidden so no
+ * duplicate either.</p>
  */
 public final class MainToolBarRightRegistrar implements StartupActivity {
 
     private static final Logger LOG = Logger.getInstance(MainToolBarRightRegistrar.class);
 
-    /**
-     * Candidate groups in priority order. The first one that exists wins.
-     * Covers New UI, Classic UI, and all IntelliJ-based IDEs.
-     */
-    private static final String[] RIGHT_GROUP_CANDIDATES = {
-            "MainToolbarRight",   // New UI (2024+, lowercase 'b')
+    // All candidate toolbar groups across IntelliJ versions.
+    private static final String[] TOOLBAR_GROUPS = {
+            "MainToolbarRight",   // New UI 2024+ (lowercase 'b')
             "MainToolBarRight",   // Classic UI (uppercase 'B')
     };
 
-    private static final String FALLBACK_GROUP = "MainToolBar"; // universal fallback
-
-    private static volatile boolean relocated = false;
+    private static volatile boolean done = false;
 
     @Override
     public void runActivity(@NotNull Project project) {
-        if (relocated) {
+        // Always show the notification — helps user confirm plugin is active.
+        javax.swing.SwingUtilities.invokeLater(() -> {
+            try {
+                Notifications.Bus.notify(
+                        NotificationGroupManager.getInstance()
+                                .getNotificationGroup("Shell Toolbar Notifications")
+                                .createNotification(
+                                        "Shell Toolbar Installed",
+                                        "Look for the shell icon in the top toolbar.\n" +
+                                        "Can't find it? Press Ctrl+Shift+A (Find Action) and type \"Shell Commands\".",
+                                        NotificationType.INFORMATION),
+                        project);
+            } catch (Exception ignored) {
+                // Notification group might not be ready yet — non-critical.
+            }
+        });
+
+        if (done) {
             return;
         }
 
         ActionManager am = ActionManager.getInstance();
         AnAction group = am.getAction("ShellToolbarGroup");
         if (group == null) {
-            LOG.warn("ShellToolbarGroup action not found — cannot register on toolbar");
+            LOG.warn("ShellToolbarGroup not found in ActionManager");
             return;
         }
 
-        // Remove from the static fallback group first to avoid duplicates.
-        AnAction fallback = am.getAction(FALLBACK_GROUP);
-        if (fallback instanceof DefaultActionGroup) {
-            DefaultActionGroup fallbackGroup = (DefaultActionGroup) fallback;
-            if (fallbackGroup.containsAction(group)) {
-                fallbackGroup.remove(group);
-                LOG.info("Removed ShellToolbarGroup from " + FALLBACK_GROUP);
+        // ADD (not move) to every toolbar group that exists.
+        // We keep the static MainToolBar registration AND add to New UI groups.
+        // No duplicate risk: in Classic UI the New UI groups don't exist,
+        // in New UI MainToolBar is hidden by default.
+        int added = 0;
+        for (String groupId : TOOLBAR_GROUPS) {
+            try {
+                AnAction candidate = am.getAction(groupId);
+                if (candidate instanceof DefaultActionGroup) {
+                    DefaultActionGroup dg = (DefaultActionGroup) candidate;
+                    if (!dg.containsAction(group)) {
+                        dg.add(group);
+                        added++;
+                        LOG.info("ShellToolbarGroup added to " + groupId);
+                    }
+                }
+            } catch (Exception e) {
+                LOG.warn("Failed to add to " + groupId + ": " + e.getMessage());
             }
         }
 
-        // Try each candidate group in order.
-        for (String groupId : RIGHT_GROUP_CANDIDATES) {
-            AnAction candidate = am.getAction(groupId);
-            if (candidate instanceof DefaultActionGroup) {
-                DefaultActionGroup candidateGroup = (DefaultActionGroup) candidate;
-                candidateGroup.add(group);
-                relocated = true;
-                LOG.info("ShellToolbarGroup registered in " + groupId);
-                return;
-            }
-        }
-
-        // No right-side group found — fall back to MainToolBar (always exists).
-        if (fallback instanceof DefaultActionGroup) {
-            ((DefaultActionGroup) fallback).add(group);
-            LOG.info("ShellToolbarGroup registered in fallback " + FALLBACK_GROUP);
-        }
-        relocated = true;
+        LOG.info("ShellToolbarGroup registration complete. Added to " + added
+                + " additional group(s). Static MainToolBar registration preserved.");
+        done = true;
     }
 }
