@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.4.0] - 2026-08-10
+
+## What's Changed
+
+**1 commits** since previous release.
+
+### 🚀 New Features
+- popup toolbar icon + open-in-terminal mode (35c28ea)
+
+---
+
+**Full Changelog**: https://github.com/neo-idea/open-shell-toolbar-plugin/compare/v1.3.4...v1.4.0
+
+
 ## [1.3.4] - 2026-08-08
 
 ## What's Changed

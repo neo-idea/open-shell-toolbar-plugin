@@ -12,11 +12,9 @@
     <depends>com.intellij.modules.platform</depends>
 
     <change-notes><![CDATA[
-        <b>1.3.5</b><br/>
-        <b>Improvements</b><br/><ul>
-<li>show single popup icon to the left of settings button (always visible after install)</li>
-<li>add "Open in Terminal" mode for long-running commands (dev servers, file watchers)</li>
-<li>add 120s timeout safeguard for background execution to prevent thread hang</li>
+        <b>1.4.0</b><br/>
+        <b>New Features</b><br/><ul>
+<li>popup toolbar icon + open-in-terminal mode</li>
 </ul>
     ]]></change-notes>
 
