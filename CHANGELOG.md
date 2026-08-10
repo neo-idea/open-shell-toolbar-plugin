@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.3.7] - 2026-08-10
+
+## What's Changed
+
+**1 commits** since previous release.
+
+### 🐛 Bug Fixes
+- statically register in MainToolbarRight for New UI visibility (54bf8f0)
+
+---
+
+**Full Changelog**: https://github.com/neo-idea/open-shell-toolbar-plugin/compare/v1.4.2...v1.3.7
+
+
 ## [1.4.2] - 2026-08-10
 
 ## What's Changed
