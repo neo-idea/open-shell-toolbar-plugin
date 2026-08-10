@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.4.2] - 2026-08-10
+
+## What's Changed
+
+**1 commits** since previous release.
+
+### 🐛 Bug Fixes
+- additive toolbar registration + startup notification (74b2356)
+
+---
+
+**Full Changelog**: https://github.com/neo-idea/open-shell-toolbar-plugin/compare/v1.4.1...v1.4.2
+
+
 ## [1.4.1] - 2026-08-10
 
 ## What's Changed
