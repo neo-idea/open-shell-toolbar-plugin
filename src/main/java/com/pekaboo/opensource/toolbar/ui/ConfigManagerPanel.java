@@ -52,7 +52,8 @@ public class ConfigManagerPanel implements Disposable {
     private static final int COL_TITLE = 1;
     private static final int COL_COMMAND = 2;
     private static final int COL_WORKING_DIR = 3;
-    private static final int COL_ENABLED = 4;
+    private static final int COL_TERMINAL = 4;
+    private static final int COL_ENABLED = 5;
 
     public ConfigManagerPanel(@NotNull Project project) {
         this.project = project;
@@ -61,17 +62,11 @@ public class ConfigManagerPanel implements Disposable {
         initializeUI();
     }
 
-    /**
-     * Loads configurations from the service.
-     */
     private void loadConfigs() {
         configs.clear();
         configs.addAll(configService.getConfigs());
     }
 
-    /**
-     * Reloads configurations from the service and refreshes the table.
-     */
     public void refresh() {
         loadConfigs();
         if (tableModel != null) {
@@ -79,24 +74,18 @@ public class ConfigManagerPanel implements Disposable {
         }
     }
 
-    /**
-     * Initializes the UI components.
-     */
     private void initializeUI() {
         tableModel = new ConfigTableModel();
         configTable = new JBTable(tableModel);
 
-        // Configure table appearance
         configTable.setRowHeight(30);
         configTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         configTable.setShowGrid(false);
         configTable.setIntercellSpacing(new Dimension(0, 0));
         configTable.getTableHeader().setReorderingAllowed(false);
 
-        // Configure column widths
         configureTableColumns();
 
-        // Add double-click listener for editing
         configTable.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -106,7 +95,6 @@ public class ConfigManagerPanel implements Disposable {
             }
         });
 
-        // Create toolbar decorator
         ToolbarDecorator decorator = ToolbarDecorator.createDecorator(configTable)
                 .setAddAction(this::addConfig)
                 .setEditAction(this::editSelectedConfig)
@@ -116,58 +104,47 @@ public class ConfigManagerPanel implements Disposable {
                 .addExtraAction(new ImportAction())
                 .addExtraAction(new ExportAction());
 
-        // Add border to toolbar
         decorator.setToolbarBorder(JBUI.Borders.customLine(JBColor.GRAY, 0, 0, 1, 0));
 
-        // Create scroll pane
         JBScrollPane scrollPane = new JBScrollPane(configTable);
         scrollPane.setBorder(JBUI.Borders.empty());
 
-        // Create main panel
         mainPanel = new JPanel(new BorderLayout());
         mainPanel.add(scrollPane, BorderLayout.CENTER);
         mainPanel.add(decorator.createPanel(), BorderLayout.NORTH);
         mainPanel.setPreferredSize(JBUI.size(600, 400));
         mainPanel.setBorder(JBUI.Borders.empty(10));
 
-        // Add selection listener
         configTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
             @Override
             public void valueChanged(ListSelectionEvent e) {
                 if (!e.getValueIsAdjusting()) {
-                    // Selection changed - can be used for context-sensitive actions
+                    // Selection changed
                 }
             }
         });
     }
 
-    /**
-     * Configures table column widths.
-     */
     private void configureTableColumns() {
         TableColumnModel columnModel = configTable.getColumnModel();
 
-        // Icon column - narrow
         columnModel.getColumn(COL_ICON).setPreferredWidth(50);
         columnModel.getColumn(COL_ICON).setMaxWidth(60);
 
-        // Title column - wider
         columnModel.getColumn(COL_TITLE).setPreferredWidth(150);
 
-        // Command column - widest
         columnModel.getColumn(COL_COMMAND).setPreferredWidth(200);
 
-        // Working Dir column - medium
         columnModel.getColumn(COL_WORKING_DIR).setPreferredWidth(150);
 
-        // Enabled column - narrow
+        // Terminal column — narrow checkbox
+        columnModel.getColumn(COL_TERMINAL).setPreferredWidth(70);
+        columnModel.getColumn(COL_TERMINAL).setMaxWidth(80);
+
         columnModel.getColumn(COL_ENABLED).setPreferredWidth(60);
         columnModel.getColumn(COL_ENABLED).setMaxWidth(70);
     }
 
-    /**
-     * Adds a new configuration.
-     */
     private void addConfig(AnActionButton e) {
         AddEditConfigDialog dialog = new AddEditConfigDialog(project);
         if (dialog.showAndGet()) {
@@ -178,16 +155,10 @@ public class ConfigManagerPanel implements Disposable {
         }
     }
 
-    /**
-     * Edits the selected configuration.
-     */
     private void editSelectedConfig(AnActionButton e) {
         editSelectedConfig();
     }
 
-    /**
-     * Edits the selected configuration.
-     */
     private void editSelectedConfig() {
         int selectedRow = configTable.getSelectedRow();
         if (selectedRow < 0) {
@@ -204,9 +175,6 @@ public class ConfigManagerPanel implements Disposable {
         }
     }
 
-    /**
-     * Removes the selected configuration.
-     */
     private void removeSelectedConfig(AnActionButton e) {
         int selectedRow = configTable.getSelectedRow();
         if (selectedRow < 0) {
@@ -228,7 +196,6 @@ public class ConfigManagerPanel implements Disposable {
             configService.removeConfig(selectedConfig.getId());
             tableModel.fireTableRowsDeleted(selectedRow, selectedRow);
 
-            // Select the row after the deleted one if available
             if (configs.size() > 0) {
                 int newSelection = Math.min(selectedRow, configs.size() - 1);
                 configTable.setRowSelectionInterval(newSelection, newSelection);
@@ -236,53 +203,39 @@ public class ConfigManagerPanel implements Disposable {
         }
     }
 
-    /**
-     * Moves the selected config up.
-     */
     private void moveConfigUp(AnActionButton e) {
         int selectedRow = configTable.getSelectedRow();
         if (selectedRow <= 0) {
             return;
         }
 
-        // Swap in the list
         ShellCommandConfig temp = configs.get(selectedRow);
         configs.set(selectedRow, configs.get(selectedRow - 1));
         configs.set(selectedRow - 1, temp);
 
-        // Update service - need to replace all since order changed
         updateAllConfigs();
 
         tableModel.fireTableRowsUpdated(selectedRow - 1, selectedRow);
         configTable.setRowSelectionInterval(selectedRow - 1, selectedRow - 1);
     }
 
-    /**
-     * Moves the selected config down.
-     */
     private void moveConfigDown(AnActionButton e) {
         int selectedRow = configTable.getSelectedRow();
         if (selectedRow < 0 || selectedRow >= configs.size() - 1) {
             return;
         }
 
-        // Swap in the list
         ShellCommandConfig temp = configs.get(selectedRow);
         configs.set(selectedRow, configs.get(selectedRow + 1));
         configs.set(selectedRow + 1, temp);
 
-        // Update service - need to replace all since order changed
         updateAllConfigs();
 
         tableModel.fireTableRowsUpdated(selectedRow, selectedRow + 1);
         configTable.setRowSelectionInterval(selectedRow + 1, selectedRow + 1);
     }
 
-    /**
-     * Updates all configurations in the service (used for reorder operations).
-     */
     private void updateAllConfigs() {
-        // Clear and re-add all configs to update the service
         List<ShellCommandConfig> currentConfigs = new ArrayList<>(configs);
         configService.clearAllConfigs();
         for (ShellCommandConfig config : currentConfigs) {
@@ -290,33 +243,18 @@ public class ConfigManagerPanel implements Disposable {
         }
     }
 
-    /**
-     * Returns the main panel.
-     */
     public JPanel getPanel() {
         return mainPanel;
     }
 
-    /**
-     * Checks if configurations have been modified.
-     */
     public boolean isModified() {
-        // For simplicity, we assume modifications occur when actions are performed
-        // In a more complex implementation, you'd track the original state
         return false;
     }
 
-    /**
-     * Applies changes (already applied immediately in this implementation).
-     */
     public void apply() {
-        // Changes are applied immediately, but we can reload to ensure consistency
         refresh();
     }
 
-    /**
-     * Resets to the service state.
-     */
     public void reset() {
         refresh();
     }
@@ -331,7 +269,7 @@ public class ConfigManagerPanel implements Disposable {
      */
     private class ConfigTableModel extends AbstractTableModel {
 
-        private final String[] COLUMN_NAMES = {"Icon", "Title", "Command", "Working Dir", "Enabled"};
+        private final String[] COLUMN_NAMES = {"Icon", "Title", "Command", "Working Dir", "Terminal", "Enabled"};
 
         @Override
         public int getRowCount() {
@@ -350,7 +288,7 @@ public class ConfigManagerPanel implements Disposable {
 
         @Override
         public Class<?> getColumnClass(int columnIndex) {
-            if (columnIndex == COL_ENABLED) {
+            if (columnIndex == COL_ENABLED || columnIndex == COL_TERMINAL) {
                 return Boolean.class;
             }
             return String.class;
@@ -365,10 +303,11 @@ public class ConfigManagerPanel implements Disposable {
             ShellCommandConfig config = configs.get(rowIndex);
 
             return switch (columnIndex) {
-                case COL_ICON -> config.getIcon() != null ? config.getIcon() : "💻";
+                case COL_ICON -> config.getIcon() != null ? config.getIcon() : "\uD83D\uDCBB";
                 case COL_TITLE -> config.getTitle() != null ? config.getTitle() : "";
                 case COL_COMMAND -> config.getCommand() != null ? config.getCommand() : "";
                 case COL_WORKING_DIR -> config.getWorkingDir() != null ? config.getWorkingDir() : "";
+                case COL_TERMINAL -> config.isOpenInTerminal();
                 case COL_ENABLED -> config.isEnabled();
                 default -> null;
             };
@@ -386,12 +325,16 @@ public class ConfigManagerPanel implements Disposable {
                 config.setEnabled((Boolean) value);
                 configService.updateConfig(config);
                 fireTableCellUpdated(rowIndex, columnIndex);
+            } else if (columnIndex == COL_TERMINAL && value instanceof Boolean) {
+                config.setOpenInTerminal((Boolean) value);
+                configService.updateConfig(config);
+                fireTableCellUpdated(rowIndex, columnIndex);
             }
         }
 
         @Override
         public boolean isCellEditable(int rowIndex, int columnIndex) {
-            return columnIndex == COL_ENABLED;
+            return columnIndex == COL_ENABLED || columnIndex == COL_TERMINAL;
         }
     }
 

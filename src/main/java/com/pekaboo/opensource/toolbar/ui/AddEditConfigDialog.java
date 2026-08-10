@@ -40,6 +40,7 @@ public class AddEditConfigDialog extends DialogWrapper {
     private JBTextField workingDirField;
     private JBTextField iconField;
     private JBCheckBox enabledCheckBox;
+    private JBCheckBox openInTerminalCheckBox;
 
     // Buttons for variable insertion
     private final List<JButton> variableButtons = new ArrayList<>();
@@ -69,21 +70,10 @@ public class AddEditConfigDialog extends DialogWrapper {
         "\uD83D\uDCA1"   // 💡 Bulb
     };
 
-    /**
-     * Constructor for adding a new config.
-     *
-     * @param project The current project
-     */
     public AddEditConfigDialog(@NotNull Project project) {
         this(project, null);
     }
 
-    /**
-     * Constructor for adding or editing a config.
-     *
-     * @param project The current project
-     * @param config  Existing config to edit, or null for new config
-     */
     public AddEditConfigDialog(@NotNull Project project, @Nullable ShellCommandConfig config) {
         super(project);
         this.project = project;
@@ -115,6 +105,11 @@ public class AddEditConfigDialog extends DialogWrapper {
 
         enabledCheckBox = new JBCheckBox("Enabled", true);
         enabledCheckBox.setToolTipText("Enable or disable this command");
+
+        openInTerminalCheckBox = new JBCheckBox("Open in Terminal", false);
+        openInTerminalCheckBox.setToolTipText(
+                "<html>Open the command in an external terminal window instead of running it silently.<br>" +
+                "Enable this for long-running or interactive commands (e.g. <code>pnpm next start</code>, <code>npm run dev</code>, <code>tail -f</code>).</html>");
 
         // Create variable buttons panel
         JPanel variablePanel = createVariableButtonsPanel();
@@ -154,18 +149,17 @@ public class AddEditConfigDialog extends DialogWrapper {
                 .addComponent(iconField)
                 .addComponent(emojiPanel)
                 .addVerticalGap(8)
+                .addComponent(openInTerminalCheckBox)
+                .addVerticalGap(4)
                 .addComponent(enabledCheckBox);
 
         JPanel mainPanel = formBuilder.getPanel();
-        mainPanel.setPreferredSize(JBUI.size(550, 400));
+        mainPanel.setPreferredSize(JBUI.size(550, 430));
         mainPanel.setBorder(JBUI.Borders.empty(10));
 
         return mainPanel;
     }
 
-    /**
-     * Creates a panel with a label and optional tooltip.
-     */
     private JPanel createLabelPanel(String labelText, String tooltipText) {
         JPanel panel = new JPanel(new BorderLayout());
         JBLabel label = new JBLabel(labelText);
@@ -175,9 +169,6 @@ public class AddEditConfigDialog extends DialogWrapper {
         return panel;
     }
 
-    /**
-     * Creates the panel with variable insertion buttons.
-     */
     private JPanel createVariableButtonsPanel() {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
         panel.setBorder(JBUI.Borders.empty(4, 18, 4, 0));
@@ -191,9 +182,6 @@ public class AddEditConfigDialog extends DialogWrapper {
         return panel;
     }
 
-    /**
-     * Creates a variable insertion button.
-     */
     private JButton createVariableButton(String variable) {
         JButton button = new JButton(variable);
         button.setFont(UIUtil.getLabelFont().deriveFont(Font.PLAIN, 10f));
@@ -205,7 +193,6 @@ public class AddEditConfigDialog extends DialogWrapper {
         button.setFocusPainted(false);
         button.addActionListener(e -> insertVariable(variable));
 
-        // Hover effect
         button.setModel(new DefaultButtonModel() {
             @Override
             public boolean isRollover() {
@@ -216,9 +203,6 @@ public class AddEditConfigDialog extends DialogWrapper {
         return button;
     }
 
-    /**
-     * Creates the panel with emoji preset buttons.
-     */
     private JPanel createEmojiPresetsPanel() {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 2));
         panel.setBorder(JBUI.Borders.empty(4, 18, 4, 0));
@@ -232,9 +216,6 @@ public class AddEditConfigDialog extends DialogWrapper {
         return panel;
     }
 
-    /**
-     * Creates an emoji preset button.
-     */
     private JButton createEmojiButton(String emoji) {
         JButton button = new JButton(emoji);
         button.setFont(new java.awt.Font("Segoe UI Emoji", Font.PLAIN, 16));
@@ -245,16 +226,12 @@ public class AddEditConfigDialog extends DialogWrapper {
         button.setToolTipText("Click to insert " + emoji);
         button.addActionListener(e -> iconField.setText(emoji));
 
-        // Hover effect
         button.setRolloverEnabled(true);
         button.setBorder(BorderFactory.createEmptyBorder(2, 4, 2, 4));
 
         return button;
     }
 
-    /**
-     * Inserts a variable at the current cursor position in the command field.
-     */
     private void insertVariable(String variable) {
         int cursorPos = commandField.getCaretPosition();
         String currentText = commandField.getText();
@@ -267,9 +244,6 @@ public class AddEditConfigDialog extends DialogWrapper {
         commandField.requestFocus();
     }
 
-    /**
-     * Opens a file chooser to select a working directory.
-     */
     private void browseWorkingDirectory() {
         FileChooserDescriptor descriptor = new FileChooserDescriptor(
                 true,  // choose files
@@ -288,20 +262,15 @@ public class AddEditConfigDialog extends DialogWrapper {
         }
     }
 
-    /**
-     * Populates form fields from an existing config.
-     */
     private void populateFromConfig(ShellCommandConfig config) {
         titleField.setText(config.getTitle() != null ? config.getTitle() : "");
         commandField.setText(config.getCommand() != null ? config.getCommand() : "");
         workingDirField.setText(config.getWorkingDir() != null ? config.getWorkingDir() : "");
-        iconField.setText(config.getIcon() != null ? config.getIcon() : "💻");
+        iconField.setText(config.getIcon() != null ? config.getIcon() : "\uD83D\uDCBB");
         enabledCheckBox.setSelected(config.isEnabled());
+        openInTerminalCheckBox.setSelected(config.isOpenInTerminal());
     }
 
-    /**
-     * Validates the form before submission.
-     */
     @Override
     protected @NotNull List<ValidationInfo> doValidateAll() {
         List<ValidationInfo> validations = new ArrayList<>();
@@ -323,11 +292,6 @@ public class AddEditConfigDialog extends DialogWrapper {
         return validations.isEmpty() ? null : validations.get(0);
     }
 
-    /**
-     * Creates a ShellCommandConfig from the form values.
-     *
-     * @return A new ShellCommandConfig with form values
-     */
     @NotNull
     public ShellCommandConfig getConfig() {
         ShellCommandConfig config = existingConfig != null ? existingConfig : new ShellCommandConfig();
@@ -335,15 +299,13 @@ public class AddEditConfigDialog extends DialogWrapper {
         config.setTitle(titleField.getText().trim());
         config.setCommand(commandField.getText().trim());
         config.setWorkingDir(workingDirField.getText().trim().isEmpty() ? null : workingDirField.getText().trim());
-        config.setIcon(iconField.getText().trim().isEmpty() ? "💻" : iconField.getText().trim());
+        config.setIcon(iconField.getText().trim().isEmpty() ? "\uD83D\uDCBB" : iconField.getText().trim());
         config.setEnabled(enabledCheckBox.isSelected());
+        config.setOpenInTerminal(openInTerminalCheckBox.isSelected());
 
         return config;
     }
 
-    /**
-     * Sets the config to edit (for external use).
-     */
     public void setConfig(@NotNull ShellCommandConfig config) {
         this.existingConfig = config;
         populateFromConfig(config);

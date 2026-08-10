@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "com.openshell.idea"
-version = "1.3.4"
+version = "1.3.5"
 
 repositories {
     mavenCentral()
@@ -37,9 +37,11 @@ intellijPlatform {
             Add shell command buttons to toolbar, sidebar, and status bar for quick access to frequently used commands.
         """.trimIndent()
         changeNotes = """
-            <b>1.3.4</b><br/>
-            <b>Bug Fixes</b><br/><ul>
-<li>harden PATH probe (skip on windows, timeout guard against rc-file hang)</li>
+            <b>1.3.5</b><br/>
+            <b>Improvements</b><br/><ul>
+<li>show single popup icon to the left of settings button (always visible after install)</li>
+<li>add "Open in Terminal" mode for long-running commands (dev servers, file watchers)</li>
+<li>add 120s timeout safeguard for background execution to prevent thread hang</li>
 </ul>
         """.trimIndent()
         vendor {
@@ -54,8 +56,6 @@ intellijPlatform {
 
     pluginVerification {
         ides {
-            // Pin to resolvable IDE builds: recommended() resolves versions
-            // that no longer exist on download.jetbrains.com (e.g. 2025.3).
             ide(IntelliJPlatformType.IntellijIdeaCommunity, "2023.3")
             ide(IntelliJPlatformType.IntellijIdeaCommunity, "2025.2")
         }
@@ -81,7 +81,6 @@ tasks {
 
     patchPluginXml {
         sinceBuild = "233"
-        // untilBuild omitted → no upper bound, compatible with future IDE releases
     }
 
     signPlugin {

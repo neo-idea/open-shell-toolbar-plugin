@@ -17,80 +17,80 @@ public class ShellCommandConfig {
     private boolean enabled;
 
     /**
+     * When true the command is opened in an external terminal window
+     * (Terminal.app / gnome-terminal / cmd) instead of being run silently
+     * in the background. This is required for long-running or interactive
+     * commands such as {@code pnpm next start}, {@code npm run dev},
+     * {@code tail -f}, etc.
+     */
+    private boolean openInTerminal;
+
+    /**
      * Default constructor - generates a unique ID and sets default values.
      */
     public ShellCommandConfig() {
         this.id = UUID.randomUUID().toString();
         this.enabled = true;
-        this.icon = "💻";
+        this.icon = "\uD83D\uDCBB";
+        this.openInTerminal = false;
     }
 
     /**
      * Full constructor for creating a command configuration.
      *
-     * @param id          Unique identifier (use null for auto-generated UUID)
-     * @param title       Display title for the command
-     * @param command     The shell command to execute
-     * @param workingDir  Working directory for command execution
-     * @param icon        Icon emoji string (e.g., "💻", "🚀", "⚙️")
-     * @param enabled     Whether the command is enabled
+     * @param id             Unique identifier (use null for auto-generated UUID)
+     * @param title          Display title for the command
+     * @param command        The shell command to execute
+     * @param workingDir     Working directory for command execution
+     * @param icon           Icon emoji string (e.g., "💻", "🚀", "⚙️")
+     * @param enabled        Whether the command is enabled
      */
     public ShellCommandConfig(String id, String title, String command, String workingDir, String icon, boolean enabled) {
+        this(id, title, command, workingDir, icon, enabled, false);
+    }
+
+    /**
+     * Full constructor with openInTerminal flag.
+     *
+     * @param id             Unique identifier (use null for auto-generated UUID)
+     * @param title          Display title for the command
+     * @param command        The shell command to execute
+     * @param workingDir     Working directory for command execution
+     * @param icon           Icon emoji string
+     * @param enabled        Whether the command is enabled
+     * @param openInTerminal Whether to open in an external terminal
+     */
+    public ShellCommandConfig(String id, String title, String command, String workingDir,
+                              String icon, boolean enabled, boolean openInTerminal) {
         this.id = id != null ? id : UUID.randomUUID().toString();
         this.title = title;
         this.command = command;
         this.workingDir = workingDir;
-        this.icon = icon != null ? icon : "💻";
+        this.icon = icon != null ? icon : "\uD83D\uDCBB";
         this.enabled = enabled;
+        this.openInTerminal = openInTerminal;
     }
 
-    public String getId() {
-        return id;
-    }
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
 
-    public void setId(String id) {
-        this.id = id;
-    }
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
 
-    public String getTitle() {
-        return title;
-    }
+    public String getCommand() { return command; }
+    public void setCommand(String command) { this.command = command; }
 
-    public void setTitle(String title) {
-        this.title = title;
-    }
+    public String getWorkingDir() { return workingDir; }
+    public void setWorkingDir(String workingDir) { this.workingDir = workingDir; }
 
-    public String getCommand() {
-        return command;
-    }
+    public String getIcon() { return icon; }
+    public void setIcon(String icon) { this.icon = icon; }
 
-    public void setCommand(String command) {
-        this.command = command;
-    }
+    public boolean isEnabled() { return enabled; }
+    public void setEnabled(boolean enabled) { this.enabled = enabled; }
 
-    public String getWorkingDir() {
-        return workingDir;
-    }
-
-    public void setWorkingDir(String workingDir) {
-        this.workingDir = workingDir;
-    }
-
-    public String getIcon() {
-        return icon;
-    }
-
-    public void setIcon(String icon) {
-        this.icon = icon;
-    }
-
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
+    public boolean isOpenInTerminal() { return openInTerminal; }
+    public void setOpenInTerminal(boolean openInTerminal) { this.openInTerminal = openInTerminal; }
 
     @Override
     public boolean equals(Object o) {
@@ -98,6 +98,7 @@ public class ShellCommandConfig {
         if (o == null || getClass() != o.getClass()) return false;
         ShellCommandConfig that = (ShellCommandConfig) o;
         return enabled == that.enabled &&
+                openInTerminal == that.openInTerminal &&
                 Objects.equals(id, that.id) &&
                 Objects.equals(title, that.title) &&
                 Objects.equals(command, that.command) &&
@@ -107,7 +108,7 @@ public class ShellCommandConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, title, command, workingDir, icon, enabled);
+        return Objects.hash(id, title, command, workingDir, icon, enabled, openInTerminal);
     }
 
     @Override

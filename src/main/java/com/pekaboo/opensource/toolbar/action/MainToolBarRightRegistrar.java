@@ -8,26 +8,58 @@ import com.intellij.openapi.startup.StartupActivity;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Best-effort registration of the shell command group on MainToolBarRight.
- * Newer IDE builds (e.g. WebStorm 2026.1 and remote-development backends) no
- * longer provide the MainToolBarRight group, so the group is statically
- * registered on MainToolBar in plugin.xml and only added here when the group
- * actually exists.
+ * Ensures the shell-command icon appears exactly ONCE on the main toolbar,
+ * preferring the RIGHT segment (immediately left of the settings gear)
+ * when the IDE provides it.
+ *
+ * <p>The group is statically registered in {@code MainToolBar} via
+ * plugin.xml as a universal fallback. At startup, if {@code MainToolBarRight}
+ * exists we MOVE the group there (removing from {@code MainToolBar}) to
+ * achieve the ideal placement and avoid a duplicate icon. On IDE builds
+ * where {@code MainToolBarRight} no longer exists (e.g. 2026.1+) the
+ * fallback registration stays in place.</p>
  */
 public final class MainToolBarRightRegistrar implements StartupActivity {
 
+    private static volatile boolean relocated = false;
+
     @Override
     public void runActivity(@NotNull Project project) {
-        ActionManager actionManager = ActionManager.getInstance();
-        AnAction group = actionManager.getAction("ShellToolbarGroup");
-        AnAction right = actionManager.getAction("MainToolBarRight");
-        if (group == null || !(right instanceof DefaultActionGroup)) {
+        if (relocated) {
             return;
         }
+
+        ActionManager am = ActionManager.getInstance();
+        AnAction group = am.getAction("ShellToolbarGroup");
+        if (group == null) {
+            return;
+        }
+
+        AnAction right = am.getAction("MainToolBarRight");
+        if (!(right instanceof DefaultActionGroup)) {
+            // MainToolBarRight not available on this IDE build;
+            // keep the static MainToolBar registration.
+            return;
+        }
+
         DefaultActionGroup rightGroup = (DefaultActionGroup) right;
+
+        // Prevent duplicate if somehow already present.
         if (rightGroup.containsAction(group)) {
+            relocated = true;
             return;
         }
+
+        // Move from MainToolBar → MainToolBarRight to avoid two icons.
+        AnAction main = am.getAction("MainToolBar");
+        if (main instanceof DefaultActionGroup) {
+            DefaultActionGroup mainGroup = (DefaultActionGroup) main;
+            if (mainGroup.containsAction(group)) {
+                mainGroup.remove(group);
+            }
+        }
+
         rightGroup.add(group);
+        relocated = true;
     }
 }
