@@ -10,11 +10,13 @@
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
+    <depends>org.jetbrains.plugins.terminal</depends>
 
     <change-notes><![CDATA[
-        <b>1.3.7</b><br/>
-        <b>Bug Fixes</b><br/><ul>
-<li>statically register in MainToolbarRight for New UI visibility</li>
+        <b>1.3.8</b><br/>
+        <b>Improvements</b><br/><ul>
+<li>use IntelliJ built-in terminal for long-running commands instead of external Terminal.app</li>
+<li>statically register in MainToolbarRight (New UI) + MainToolBar (Classic UI) + NavBarToolBar</li>
 </ul>
     ]]></change-notes>
 
@@ -37,11 +39,6 @@
     </extensions>
 
     <actions>
-        <!-- Popup group: renders as a SINGLE ICON on the toolbar.
-             Registered in ALL toolbar groups for maximum compatibility:
-             - MainToolBar: Classic UI main toolbar
-             - MainToolbarRight: New UI top bar (right segment, left of settings gear)
-             - NavBarToolBar: Navigation bar (visible in both UIs) -->
         <group id="ShellToolbarGroup"
                class="com.pekaboo.opensource.toolbar.action.ToolbarActionGroup"
                text="Shell Commands"
