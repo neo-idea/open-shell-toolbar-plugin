@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.5.0] - 2026-08-11
+
+## What's Changed
+
+**2 commits** since previous release.
+
+### 🚀 New Features
+- run long-running commands in IntelliJ built-in terminal (c8f2264)
+
+---
+
+**Full Changelog**: https://github.com/neo-idea/open-shell-toolbar-plugin/compare/v1.3.7...v1.5.0
+
+
 ## [1.3.7] - 2026-08-10
 
 ## What's Changed

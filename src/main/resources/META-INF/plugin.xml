@@ -13,10 +13,9 @@
     <depends>org.jetbrains.plugins.terminal</depends>
 
     <change-notes><![CDATA[
-        <b>1.3.8</b><br/>
-        <b>Improvements</b><br/><ul>
-<li>use IntelliJ built-in terminal for long-running commands instead of external Terminal.app</li>
-<li>statically register in MainToolbarRight (New UI) + MainToolBar (Classic UI) + NavBarToolBar</li>
+        <b>1.5.0</b><br/>
+        <b>New Features</b><br/><ul>
+<li>run long-running commands in IntelliJ built-in terminal</li>
 </ul>
     ]]></change-notes>
 
