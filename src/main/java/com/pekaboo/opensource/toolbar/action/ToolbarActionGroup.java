@@ -60,10 +60,13 @@ public class ToolbarActionGroup extends DefaultActionGroup {
 
         if (service != null) {
             List<ShellCommandConfig> configs = service.getEnabledConfigs();
-            for (ShellCommandConfig config : configs) {
-                actions.add(new CustomToolbarAction(config));
-            }
-            if (!configs.isEmpty()) {
+            if (configs.isEmpty()) {
+                // Parity with the status bar popup: offer a hint instead of an empty menu.
+                actions.add(new DisabledAction("No commands configured"));
+            } else {
+                for (ShellCommandConfig config : configs) {
+                    actions.add(new CustomToolbarAction(config));
+                }
                 actions.add(Separator.getInstance());
             }
         }

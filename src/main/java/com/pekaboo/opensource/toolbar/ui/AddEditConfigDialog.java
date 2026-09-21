@@ -108,7 +108,7 @@ public class AddEditConfigDialog extends DialogWrapper {
 
         openInTerminalCheckBox = new JBCheckBox("Open in Terminal", false);
         openInTerminalCheckBox.setToolTipText(
-                "<html>Open the command in an external terminal window instead of running it silently.<br>" +
+                "<html>Run the command in the IntelliJ built-in Terminal tool window instead of silently in the background.<br>" +
                 "Enable this for long-running or interactive commands (e.g. <code>pnpm next start</code>, <code>npm run dev</code>, <code>tail -f</code>).</html>");
 
         // Create variable buttons panel

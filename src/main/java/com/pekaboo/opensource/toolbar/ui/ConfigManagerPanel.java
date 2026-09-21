@@ -4,6 +4,7 @@ import com.intellij.openapi.Disposable;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileChooser.FileChooser;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.project.Project;
@@ -12,6 +13,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.*;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.table.JBTable;
+import com.intellij.util.messages.MessageBusConnection;
 import com.intellij.util.ui.JBUI;
 import com.pekaboo.opensource.toolbar.model.ShellCommandConfig;
 import com.pekaboo.opensource.toolbar.service.ToolbarConfigService;
@@ -42,6 +44,7 @@ public class ConfigManagerPanel implements Disposable {
 
     private final Project project;
     private final ToolbarConfigService configService;
+    private final MessageBusConnection busConnection;
     private JPanel mainPanel;
     private JBTable configTable;
     private ConfigTableModel tableModel;
@@ -60,6 +63,10 @@ public class ConfigManagerPanel implements Disposable {
         this.configService = ToolbarConfigService.getInstance();
         loadConfigs();
         initializeUI();
+        // Refresh when commands are added/edited from any other surface
+        // (tool window, toolbar, status bar) while this page is open.
+        this.busConnection = ToolbarConfigService.subscribe(
+                () -> ApplicationManager.getApplication().invokeLater(this::refresh));
     }
 
     private void loadConfigs() {
@@ -235,12 +242,12 @@ public class ConfigManagerPanel implements Disposable {
         configTable.setRowSelectionInterval(selectedRow + 1, selectedRow + 1);
     }
 
+    /**
+     * Persists the current on-screen order atomically. The old clear-then-re-add
+     * sequence could lose the whole list if it failed halfway through.
+     */
     private void updateAllConfigs() {
-        List<ShellCommandConfig> currentConfigs = new ArrayList<>(configs);
-        configService.clearAllConfigs();
-        for (ShellCommandConfig config : currentConfigs) {
-            configService.addConfig(config);
-        }
+        configService.setConfigs(new ArrayList<>(configs));
     }
 
     public JPanel getPanel() {
@@ -261,7 +268,7 @@ public class ConfigManagerPanel implements Disposable {
 
     @Override
     public void dispose() {
-        // Cleanup if needed
+        busConnection.disconnect();
     }
 
     /**

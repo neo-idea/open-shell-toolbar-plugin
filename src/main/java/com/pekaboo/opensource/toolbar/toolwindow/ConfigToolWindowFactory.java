@@ -1,6 +1,7 @@
 package com.pekaboo.opensource.toolbar.toolwindow;
 
 import com.intellij.icons.AllIcons;
+import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
@@ -14,7 +15,9 @@ import com.intellij.openapi.wm.ToolWindowFactory;
 import com.intellij.ui.*;
 import com.intellij.ui.components.JBList;
 import com.intellij.ui.components.JBScrollPane;
+import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
+import com.intellij.util.messages.MessageBusConnection;
 import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
 import com.pekaboo.opensource.toolbar.model.ShellCommandConfig;
@@ -41,17 +44,21 @@ public class ConfigToolWindowFactory implements ToolWindowFactory {
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
         ConfigToolWindowPanel panel = new ConfigToolWindowPanel(project);
         ContentFactory contentFactory = ContentFactory.getInstance();
-        toolWindow.getContentManager().addContent(contentFactory.createContent(panel, "", false));
+        Content content = contentFactory.createContent(panel, "", false);
+        // Dispose the panel (and its message-bus subscription) when the content is closed.
+        content.setDisposer(panel);
+        toolWindow.getContentManager().addContent(content);
     }
 
     /**
      * Main panel for the configuration tool window.
      */
-    public static class ConfigToolWindowPanel extends JPanel {
+    public static class ConfigToolWindowPanel extends JPanel implements Disposable {
 
         private final Project project;
         private final ToolbarConfigService configService;
         private final CommandExecutor commandExecutor;
+        private final MessageBusConnection busConnection;
 
         private SearchTextField searchField;
         private JBList<ShellCommandConfig> configList;
@@ -66,6 +73,16 @@ public class ConfigToolWindowFactory implements ToolWindowFactory {
 
             initUI();
             loadConfigs();
+
+            // Live refresh when commands change from any other surface
+            // (settings page, toolbar, status bar) while this tool window is open.
+            this.busConnection = ToolbarConfigService.subscribe(
+                    () -> ApplicationManager.getApplication().invokeLater(this::refreshList));
+        }
+
+        @Override
+        public void dispose() {
+            busConnection.disconnect();
         }
 
         private void initUI() {
@@ -274,7 +291,8 @@ public class ConfigToolWindowFactory implements ToolWindowFactory {
                     selected.getCommand(),
                     selected.getWorkingDir(),
                     selected.getIcon(),
-                    selected.isEnabled()
+                    selected.isEnabled(),
+                    selected.isOpenInTerminal()
             );
 
             ConfigEditorDialog dialog = new ConfigEditorDialog(project, copy);
@@ -308,42 +326,40 @@ public class ConfigToolWindowFactory implements ToolWindowFactory {
         }
 
         private void moveSelectionUp() {
-            int index = configList.getSelectedIndex();
-            if (index > 0) {
-                // Swap in the actual service data
-                List<ShellCommandConfig> configs = new ArrayList<>(configService.getConfigs());
-                ShellCommandConfig temp = configs.get(index);
-                configs.set(index, configs.get(index - 1));
-                configs.set(index - 1, temp);
-
-                // Update service
-                configService.clearAllConfigs();
-                for (ShellCommandConfig config : configs) {
-                    configService.addConfig(config);
-                }
-
-                refreshList();
-                configList.setSelectedIndex(index - 1);
-            }
+            moveSelection(-1);
         }
 
         private void moveSelectionDown() {
-            int index = configList.getSelectedIndex();
-            List<ShellCommandConfig> configs = configService.getConfigs();
-            if (index >= 0 && index < configs.size() - 1) {
-                List<ShellCommandConfig> allConfigs = new ArrayList<>(configs);
-                ShellCommandConfig temp = allConfigs.get(index);
-                allConfigs.set(index, allConfigs.get(index + 1));
-                allConfigs.set(index + 1, temp);
+            moveSelection(1);
+        }
 
-                configService.clearAllConfigs();
-                for (ShellCommandConfig config : allConfigs) {
-                    configService.addConfig(config);
+        /**
+         * Moves the selected config by {@code delta} within the full config list.
+         * The list may be filtered by search, so the selected object is located
+         * by identity in the full list rather than by display index.
+         */
+        private void moveSelection(int delta) {
+            ShellCommandConfig selected = configList.getSelectedValue();
+            if (selected == null) return;
+
+            List<ShellCommandConfig> configs = new ArrayList<>(configService.getConfigs());
+            int index = -1;
+            for (int i = 0; i < configs.size(); i++) {
+                if (configs.get(i) == selected) {
+                    index = i;
+                    break;
                 }
-
-                refreshList();
-                configList.setSelectedIndex(index + 1);
             }
+            if (index < 0) return;
+            int target = index + delta;
+            if (target < 0 || target >= configs.size()) return;
+
+            configs.set(index, configs.get(target));
+            configs.set(target, selected);
+
+            configService.setConfigs(configs);
+            refreshList();
+            configList.setSelectedValue(selected, true);
         }
 
         private void toggleEnabled(ShellCommandConfig config) {
@@ -612,6 +628,7 @@ public class ConfigToolWindowFactory implements ToolWindowFactory {
         private JTextField workingDirField;
         private JTextField iconField;
         private JCheckBox enabledCheckBox;
+        private JCheckBox openInTerminalCheckBox;
 
         public ConfigEditorDialog(@Nullable Project project, @Nullable ShellCommandConfig config) {
             super(project, config == null);
@@ -711,6 +728,14 @@ public class ConfigToolWindowFactory implements ToolWindowFactory {
             enabledCheckBox = new JCheckBox("Enabled");
             panel.add(enabledCheckBox, gbc);
 
+            // Open in terminal checkbox
+            row++;
+            gbc.gridx = 0;
+            gbc.gridy = row;
+            gbc.gridwidth = 2;
+            openInTerminalCheckBox = new JCheckBox("Open in built-in terminal (for long-running / interactive commands)");
+            panel.add(openInTerminalCheckBox, gbc);
+
             // Load existing values
             if (originalConfig != null) {
                 titleField.setText(originalConfig.getTitle());
@@ -718,9 +743,11 @@ public class ConfigToolWindowFactory implements ToolWindowFactory {
                 workingDirField.setText(originalConfig.getWorkingDir());
                 iconField.setText(originalConfig.getIcon());
                 enabledCheckBox.setSelected(originalConfig.isEnabled());
+                openInTerminalCheckBox.setSelected(originalConfig.isOpenInTerminal());
             } else {
                 iconField.setText("💻");
                 enabledCheckBox.setSelected(true);
+                openInTerminalCheckBox.setSelected(false);
             }
 
             return panel;
@@ -793,6 +820,7 @@ public class ConfigToolWindowFactory implements ToolWindowFactory {
                 resultConfig.setWorkingDir(workingDirField.getText().trim());
                 resultConfig.setIcon(iconField.getText().trim());
                 resultConfig.setEnabled(enabledCheckBox.isSelected());
+                resultConfig.setOpenInTerminal(openInTerminalCheckBox.isSelected());
 
                 super.doOKAction();
             }

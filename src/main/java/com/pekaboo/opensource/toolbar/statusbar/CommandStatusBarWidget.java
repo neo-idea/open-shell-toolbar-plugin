@@ -1,23 +1,27 @@
 package com.pekaboo.opensource.toolbar.statusbar;
 
 import com.intellij.openapi.Disposable;
+import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.ide.DataManager;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
+import com.intellij.openapi.ui.popup.ListPopup;
+import com.intellij.openapi.wm.StatusBar;
 import com.intellij.openapi.wm.StatusBarWidget;
-import com.intellij.ui.ColoredListCellRenderer;
-import com.intellij.ui.SimpleTextAttributes;
 import com.intellij.util.Consumer;
+import com.pekaboo.opensource.toolbar.action.ConfigureShellCommandsAction;
+import com.pekaboo.opensource.toolbar.action.DisabledAction;
 import com.pekaboo.opensource.toolbar.model.ShellCommandConfig;
 import com.pekaboo.opensource.toolbar.service.CommandExecutor;
 import com.pekaboo.opensource.toolbar.service.ToolbarConfigService;
+import com.pekaboo.opensource.toolbar.ui.CommandListRenderer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -29,10 +33,23 @@ public class CommandStatusBarWidget implements StatusBarWidget, StatusBarWidget.
     private final Timer resultResetTimer;
     private String displayedText = "Shell Commands";
     private String tooltip = "Click to execute shell commands";
+    private volatile StatusBar statusBar;
 
     public CommandStatusBarWidget(@NotNull Project project) {
         this.project = project;
         this.resultResetTimer = new Timer("StatusBarWidgetResultReset");
+    }
+
+    @Override
+    public void install(@NotNull StatusBar statusBar) {
+        this.statusBar = statusBar;
+    }
+
+    private void repaintWidget() {
+        StatusBar bar = statusBar;
+        if (bar != null) {
+            bar.updateWidget(ID());
+        }
     }
 
     @Override
@@ -73,31 +90,41 @@ public class CommandStatusBarWidget implements StatusBarWidget, StatusBarWidget.
                 .getService(ToolbarConfigService.class);
         if (configService == null) return;
 
+        // The click consumer only fires after install(), so the bar is set in practice.
+        StatusBar bar = statusBar;
+        if (bar == null) return;
+        Component anchor = bar.getComponent();
+
         List<ShellCommandConfig> enabledConfigs = configService.getEnabledConfigs();
-        if (enabledConfigs.isEmpty()) return;
 
-        List<ShellCommandConfig> items = new ArrayList<>(enabledConfigs);
-        JList<ShellCommandConfig> list = new JList<>(items.toArray(new ShellCommandConfig[0]));
-        list.setCellRenderer(new ColoredListCellRenderer<>() {
-            @Override
-            protected void customizeCellRenderer(@NotNull JList<? extends ShellCommandConfig> list,
-                                                  @NotNull ShellCommandConfig config,
-                                                  int index, boolean selected, boolean hasFocus) {
-                setIcon(new EmojiIconWrapper(config.getIcon() != null ? config.getIcon() : "💻"));
-                append(config.getTitle(), SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES);
-                append("  ");
-                String preview = config.getCommand();
-                if (preview != null && preview.length() > 40) preview = preview.substring(0, 37) + "...";
-                append(preview != null ? preview : "", SimpleTextAttributes.GRAY_ATTRIBUTES);
-            }
-        });
+        if (enabledConfigs.isEmpty()) {
+            // Same behaviour as the top toolbar dropdown: show a hint plus the
+            // Configure entry instead of silently doing nothing.
+            DefaultActionGroup group = new DefaultActionGroup();
+            group.add(new DisabledAction("No commands configured"));
+            group.addSeparator();
+            group.add(new ConfigureShellCommandsAction());
+            ListPopup popup = JBPopupFactory.getInstance().createActionGroupPopup(
+                    "Shell Commands",
+                    group,
+                    DataManager.getInstance().getDataContext(anchor),
+                    JBPopupFactory.ActionSelectionAid.SPEEDSEARCH,
+                    true);
+            popup.showUnderneathOf(anchor);
+            return;
+        }
 
-        JBPopupFactory.getInstance()
-                .createPopupChooserBuilder(items)
+        // Rendered with the shared CommandListRenderer (emoji icon + bold title +
+        // gray command preview) — identical to the toolbar dropdown's visual language.
+        JBPopup popup = JBPopupFactory.getInstance()
+                .createPopupChooserBuilder(enabledConfigs)
                 .setTitle("Shell Commands")
+                .setRenderer(new CommandListRenderer())
+                .setNamerForFiltering(config -> String.valueOf(config.getTitle()) + " "
+                        + String.valueOf(config.getCommand()))
                 .setItemChosenCallback(this::executeCommand)
-                .createPopup()
-                .showInFocusCenter();
+                .createPopup();
+        popup.showUnderneathOf(anchor);
     }
 
     private void executeCommand(@NotNull ShellCommandConfig config) {
@@ -105,6 +132,7 @@ public class CommandStatusBarWidget implements StatusBarWidget, StatusBarWidget.
         if (executor != null) {
             executor.executeCommand(config, project);
             displayedText = "▶ " + config.getTitle();
+            repaintWidget();
             scheduleResultReset();
         }
     }
@@ -117,6 +145,7 @@ public class CommandStatusBarWidget implements StatusBarWidget, StatusBarWidget.
                 ApplicationManager.getApplication().invokeLater(() -> {
                     displayedText = "Shell Commands";
                     tooltip = "Click to execute shell commands";
+                    repaintWidget();
                 });
             }
         }, RESULT_DISPLAY_DURATION_MS);
@@ -125,22 +154,5 @@ public class CommandStatusBarWidget implements StatusBarWidget, StatusBarWidget.
     @Override
     public void dispose() {
         resultResetTimer.cancel();
-    }
-
-    private static class EmojiIconWrapper implements Icon {
-        private final String emoji;
-        private static final int SIZE = 16;
-
-        EmojiIconWrapper(@NotNull String emoji) { this.emoji = emoji; }
-
-        @Override public void paintIcon(Component c, Graphics g, int x, int y) {
-            Graphics2D g2d = (Graphics2D) g.create();
-            g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-            g2d.setFont(g2d.getFont().deriveFont(12f));
-            g2d.drawString(emoji, x, y + SIZE - 2);
-            g2d.dispose();
-        }
-        @Override public int getIconWidth() { return SIZE; }
-        @Override public int getIconHeight() { return SIZE; }
     }
 }

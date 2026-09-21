@@ -13,9 +13,12 @@
     <depends>org.jetbrains.plugins.terminal</depends>
 
     <change-notes><![CDATA[
-        <b>1.5.0</b><br/>
-        <b>New Features</b><br/><ul>
-<li>run long-running commands in IntelliJ built-in terminal</li>
+        <b>1.5.1</b><br/>
+        <b>Bug Fixes</b><br/><ul>
+<li>fix: command configurations are now truly persisted across IDE restarts (new commands were silently lost)</li>
+<li>fix: toolbar dropdown and status bar popup render consistently (shared renderer, empty state)</li>
+<li>fix: "Open in Terminal" reliably opens the IntelliJ built-in terminal on old and new IDE versions</li>
+<li>fix: settings page and tool window refresh live when commands change elsewhere</li>
 </ul>
     ]]></change-notes>
 

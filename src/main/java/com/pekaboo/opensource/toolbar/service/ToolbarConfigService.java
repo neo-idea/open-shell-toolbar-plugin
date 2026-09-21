@@ -3,11 +3,13 @@ package com.pekaboo.opensource.toolbar.service;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-import com.intellij.openapi.components.Service;
+import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
 
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.util.messages.MessageBusConnection;
+import com.intellij.util.messages.Topic;
 import com.pekaboo.opensource.toolbar.model.ShellCommandConfig;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -30,12 +32,24 @@ import java.util.stream.Collectors;
  * Application-level service for managing shell command configurations.
  * Persists command configurations to pekaboo-shell-toolbar.xml.
  */
-@Service(Service.Level.APP)
+// Registered as an applicationService in plugin.xml; must not also carry @Service.
 @State(name = "ShellToolbarConfig", storages = @Storage("pekaboo-shell-toolbar.xml"))
-public class ToolbarConfigService {
+public class ToolbarConfigService implements PersistentStateComponent<ToolbarConfigService.State> {
 
     private static final Logger LOG = Logger.getInstance(ToolbarConfigService.class);
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+
+    /**
+     * Fired on the application message bus whenever the configuration list changes,
+     * so every surface (toolbar, tool window, settings page, status bar) can refresh.
+     */
+    public interface ConfigChangedListener {
+        void onConfigsChanged();
+    }
+
+    @Topic.AppLevel
+    public static final Topic<ConfigChangedListener> CONFIG_CHANGED_TOPIC =
+            Topic.create("ShellToolbarConfigChanged", ConfigChangedListener.class);
 
     /**
      * Gets the singleton instance of this service.
@@ -57,10 +71,17 @@ public class ToolbarConfigService {
 
     /**
      * Gets the current state for persistence.
+     * Returns a copy so concurrent mutation never corrupts XML serialization.
      */
     @Nullable
+    @Override
     public State getState() {
-        return state;
+        synchronized (this) {
+            ensureDefaultConfigs();
+            State copy = new State();
+            copy.configs = state.configs == null ? new ArrayList<>() : new ArrayList<>(state.configs);
+            return copy;
+        }
     }
 
     /**
@@ -92,6 +113,7 @@ public class ToolbarConfigService {
     public synchronized void addConfig(@NotNull ShellCommandConfig config) {
         ensureDefaultConfigs();
         state.configs.add(config);
+        fireConfigsChanged();
     }
 
     /**
@@ -102,7 +124,20 @@ public class ToolbarConfigService {
      */
     public synchronized boolean removeConfig(@NotNull String id) {
         ensureDefaultConfigs();
-        return state.configs.removeIf(config -> id.equals(config.getId()));
+        boolean removed = state.configs.removeIf(config -> id.equals(config.getId()));
+        if (removed) {
+            fireConfigsChanged();
+        }
+        return removed;
+    }
+
+    /**
+     * Replaces the whole configuration list atomically (used for reordering).
+     */
+    public synchronized void setConfigs(@NotNull List<ShellCommandConfig> configs) {
+        ensureDefaultConfigs();
+        state.configs = new ArrayList<>(configs);
+        fireConfigsChanged();
     }
 
     /**
@@ -116,6 +151,7 @@ public class ToolbarConfigService {
         for (int i = 0; i < state.configs.size(); i++) {
             if (state.configs.get(i).getId().equals(config.getId())) {
                 state.configs.set(i, config);
+                fireConfigsChanged();
                 return true;
             }
         }
@@ -199,12 +235,35 @@ public class ToolbarConfigService {
     }
 
     /**
+     * Subscribes to configuration changes. The returned connection is NOT tied to
+     * any disposable — callers must {@link MessageBusConnection#disconnect()} it
+     * when their UI is disposed. Listeners are invoked on the mutating thread,
+     * so UI work must be wrapped in {@code invokeLater}.
+     */
+    @NotNull
+    public static MessageBusConnection subscribe(@NotNull ConfigChangedListener listener) {
+        MessageBusConnection connection = ApplicationManager.getApplication().getMessageBus().connect();
+        connection.subscribe(CONFIG_CHANGED_TOPIC, listener);
+        return connection;
+    }
+
+    private void fireConfigsChanged() {
+        try {
+            ApplicationManager.getApplication().getMessageBus()
+                    .syncPublisher(CONFIG_CHANGED_TOPIC).onConfigsChanged();
+        } catch (Exception e) {
+            LOG.warn("Failed to notify config change listeners", e);
+        }
+    }
+
+    /**
      * Clears all configurations.
      * Use with caution - this cannot be undone.
      */
     public synchronized void clearAllConfigs() {
         ensureDefaultConfigs();
         state.configs.clear();
+        fireConfigsChanged();
     }
 
     /**
@@ -259,6 +318,7 @@ public class ToolbarConfigService {
             if (imported != null) {
                 state.configs.clear();
                 state.configs.addAll(imported);
+                fireConfigsChanged();
                 LOG.info("Imported " + imported.size() + " configurations from " + filePath);
                 return true;
             }
@@ -296,6 +356,7 @@ public class ToolbarConfigService {
             if (imported != null) {
                 state.configs.clear();
                 state.configs.addAll(imported);
+                fireConfigsChanged();
                 LOG.info("Imported " + imported.size() + " configurations from JSON string");
                 return true;
             }
