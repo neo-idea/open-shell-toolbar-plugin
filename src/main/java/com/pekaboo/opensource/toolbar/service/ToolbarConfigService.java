@@ -231,6 +231,8 @@ public class ToolbarConfigService implements PersistentStateComponent<ToolbarCon
         config.setWorkingDir(workingDir);
         config.setIcon(icon);
         config.setEnabled(true);
+        // Sample commands are quick one-offs (open apps/URLs) — background mode suits them.
+        config.setOpenInTerminal(false);
         return config;
     }
 

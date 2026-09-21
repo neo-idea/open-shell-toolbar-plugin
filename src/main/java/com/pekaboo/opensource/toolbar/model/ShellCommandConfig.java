@@ -17,22 +17,23 @@ public class ShellCommandConfig {
     private boolean enabled;
 
     /**
-     * When true the command is opened in an external terminal window
-     * (Terminal.app / gnome-terminal / cmd) instead of being run silently
-     * in the background. This is required for long-running or interactive
-     * commands such as {@code pnpm next start}, {@code npm run dev},
-     * {@code tail -f}, etc.
+     * When true (the default for new commands) the command is run inside the
+     * IntelliJ built-in Terminal tool window. This is required for long-running
+     * or interactive commands such as {@code pnpm next start}, {@code npm run dev},
+     * {@code tail -f}, etc. Quick one-off commands can opt out to run silently
+     * in the background with a notification balloon.
      */
     private boolean openInTerminal;
 
     /**
      * Default constructor - generates a unique ID and sets default values.
+     * Commands run in the built-in terminal by default.
      */
     public ShellCommandConfig() {
         this.id = UUID.randomUUID().toString();
         this.enabled = true;
         this.icon = "\uD83D\uDCBB";
-        this.openInTerminal = false;
+        this.openInTerminal = true;
     }
 
     /**

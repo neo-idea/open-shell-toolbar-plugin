@@ -45,6 +45,8 @@ public class ShellCommandConfigTest {
 
         assertNotNull(config.getId());
         assertTrue("new commands must be enabled by default", config.isEnabled());
+        assertTrue("new commands must open in the built-in terminal by default",
+                config.isOpenInTerminal());
         assertNotNull("icon must fall back to a default emoji", config.getIcon());
     }
 }

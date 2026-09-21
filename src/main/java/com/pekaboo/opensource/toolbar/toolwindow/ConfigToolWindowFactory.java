@@ -747,7 +747,7 @@ public class ConfigToolWindowFactory implements ToolWindowFactory {
             } else {
                 iconField.setText("💻");
                 enabledCheckBox.setSelected(true);
-                openInTerminalCheckBox.setSelected(false);
+                openInTerminalCheckBox.setSelected(true);
             }
 
             return panel;
