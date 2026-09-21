@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.9.2] - 2026-09-21
+
+## What's Changed
+
+**2 commits** since previous release.
+
+### 🐛 Bug Fixes
+- repair mangled changeNotes block in build.gradle.kts (c19e858)
+- flat mode really renders one button per command; SVG icons render across IDE versions (897ef1e)
+
+---
+
+**Full Changelog**: https://github.com/neo-idea/open-shell-toolbar-plugin/compare/v1.9.0...v1.9.2
+
+
 ## [1.9.0] - 2026-09-21
 
 ## What's Changed

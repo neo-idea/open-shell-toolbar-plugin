@@ -13,15 +13,10 @@
     <depends>org.jetbrains.plugins.terminal</depends>
 
     <change-notes><![CDATA[
-        <b>1.9.1</b><br/>
+        <b>1.9.2</b><br/>
         <b>Bug Fixes</b><br/><ul>
-<li>fix: flat display mode really shows one button per command (dedicated flat group, live visibility switch)</li>
-<li>fix: inline SVG icons render across IDE versions</li>
-<li>fix: edit-dialog icon preview refreshes after async icon loads</li>
-</ul>
-        <b>1.9.0</b><br/>
-        <b>New Features</b><br/><ul>
-<li>icon field supports inline SVG code and image URLs (http/https/file, data URI) in addition to emoji</li>
+<li>repair mangled changeNotes block in build.gradle.kts</li>
+<li>flat mode really renders one button per command; SVG icons render across IDE versions</li>
 </ul>
     ]]></change-notes>
 

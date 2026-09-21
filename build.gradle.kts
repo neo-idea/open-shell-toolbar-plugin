@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "com.openshell.idea"
-version = "1.9.1"
+version = "1.9.2"
 
 repositories {
     mavenCentral()
@@ -38,15 +38,10 @@ intellijPlatform {
             Add shell command buttons to toolbar, sidebar, and status bar for quick access to frequently used commands.
         """.trimIndent()
         changeNotes = """
-            <b>1.9.1</b><br/>
+            <b>1.9.2</b><br/>
             <b>Bug Fixes</b><br/><ul>
-<li>fix: flat display mode now really shows one button per command on the toolbar (dedicated flat group, live visibility switch)</li>
-<li>fix: inline SVG icons render again — signature-tolerant rasterizer lookup across IDE versions with fallback</li>
-<li>fix: edit-dialog icon preview refreshes when an async URL/SVG icon finishes loading</li>
-</ul>
-            <b>1.9.0</b><br/>
-            <b>New Features</b><br/><ul>
-<li>icon field supports inline SVG code and image URLs (http/https/file, data URI) in addition to emoji</li>
+<li>repair mangled changeNotes block in build.gradle.kts</li>
+<li>flat mode really renders one button per command; SVG icons render across IDE versions</li>
 </ul>
         """.trimIndent()
         vendor {
