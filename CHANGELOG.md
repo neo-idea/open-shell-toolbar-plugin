@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.9.5] - 2026-09-21
+
+## What's Changed
+
+**1 commits** since previous release.
+
+### 🐛 Bug Fixes
+- render emoji/SVG/URL icons in the tool-window command table Icon column (02a4b22)
+
+---
+
+**Full Changelog**: https://github.com/neo-idea/open-shell-toolbar-plugin/compare/v1.9.3...v1.9.5
+
+
 ## [1.9.3] - 2026-09-21
 
 ## What's Changed
