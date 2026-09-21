@@ -38,7 +38,6 @@ intellijPlatform {
             Add shell command buttons to toolbar, sidebar, and status bar for quick access to frequently used commands.
         """.trimIndent()
         changeNotes = """
-        changeNotes = """
             <b>1.9.1</b><br/>
             <b>Bug Fixes</b><br/><ul>
 <li>fix: flat display mode now really shows one button per command on the toolbar (dedicated flat group, live visibility switch)</li>
@@ -48,10 +47,6 @@ intellijPlatform {
             <b>1.9.0</b><br/>
             <b>New Features</b><br/><ul>
 <li>icon field supports inline SVG code and image URLs (http/https/file, data URI) in addition to emoji</li>
-</ul>
-        """.trimIndent()
-            <b>New Features</b><br/><ul>
-<li>icon field supports inline SVG and image URLs (http/https/file, data URI)</li>
 </ul>
         """.trimIndent()
         vendor {
