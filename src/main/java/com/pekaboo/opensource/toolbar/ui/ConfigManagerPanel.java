@@ -134,7 +134,9 @@ public class ConfigManagerPanel implements Disposable {
         mainPanel.add(scrollPane, BorderLayout.CENTER);
         mainPanel.add(northPanel, BorderLayout.NORTH);
         mainPanel.setPreferredSize(JBUI.size(600, 400));
-        mainPanel.setBorder(JBUI.Borders.empty(10));
+        // Settings/tool-window hosts already add their own insets — avoid
+        // stacking extra horizontal padding on top of them.
+        mainPanel.setBorder(JBUI.Borders.emptyTop(8));
 
         configTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
             @Override

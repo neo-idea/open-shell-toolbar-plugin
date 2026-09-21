@@ -87,7 +87,8 @@ public class ConfigToolWindowFactory implements ToolWindowFactory {
 
         private void initUI() {
             setLayout(new BorderLayout(0, 5));
-            setBorder(JBUI.Borders.empty(10));
+            // Tool windows already provide their own side insets.
+            setBorder(JBUI.Borders.emptyTop(8));
 
             // Top: Search field
             searchField = new SearchTextField();
