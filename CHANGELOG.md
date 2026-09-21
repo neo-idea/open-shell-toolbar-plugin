@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.7.0] - 2026-09-21
+
+## What's Changed
+
+**2 commits** since previous release.
+
+### 🚀 New Features
+- toolbar display modes — Popup (dropdown icon, default) or Flat (one button per command) (80fc950)
+
+### 🐛 Bug Fixes
+- open commands in built-in terminal by default (new commands) (e522b38)
+
+---
+
+**Full Changelog**: https://github.com/neo-idea/open-shell-toolbar-plugin/compare/v1.5.2...v1.7.0
+
+
 ## [1.5.2] - 2026-09-21
 
 ## What's Changed
