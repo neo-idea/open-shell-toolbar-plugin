@@ -13,16 +13,9 @@
     <depends>org.jetbrains.plugins.terminal</depends>
 
     <change-notes><![CDATA[
-        <b>1.8.0</b><br/>
+        <b>1.9.0</b><br/>
         <b>New Features</b><br/><ul>
-<li>icon field supports inline SVG code and image URLs (http/https/file, data: URI) in addition to emoji</li>
-</ul>
-        <b>1.7.0</b><br/>
-        <b>New Features</b><br/><ul>
-<li>toolbar display modes — Popup (dropdown icon, default) or Flat (one button per command)</li>
-</ul>
-<b>Bug Fixes</b><br/><ul>
-<li>open commands in built-in terminal by default (new commands)</li>
+<li>icon field supports inline SVG and image URLs (http/https/file, data URI)</li>
 </ul>
     ]]></change-notes>
 

@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.9.0] - 2026-09-21
+
+## What's Changed
+
+**1 commits** since previous release.
+
+### 🚀 New Features
+- icon field supports inline SVG and image URLs (http/https/file, data URI) (229fea2)
+
+---
+
+**Full Changelog**: https://github.com/neo-idea/open-shell-toolbar-plugin/compare/v1.7.0...v1.9.0
+
+
 ## [1.7.0] - 2026-09-21
 
 ## What's Changed
