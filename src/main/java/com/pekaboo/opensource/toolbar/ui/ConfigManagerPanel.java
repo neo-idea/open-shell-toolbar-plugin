@@ -8,13 +8,16 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileChooser.FileChooser;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.*;
+import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.table.JBTable;
 import com.intellij.util.messages.MessageBusConnection;
 import com.intellij.util.ui.JBUI;
+import com.pekaboo.opensource.toolbar.model.DisplayMode;
 import com.pekaboo.opensource.toolbar.model.ShellCommandConfig;
 import com.pekaboo.opensource.toolbar.service.ToolbarConfigService;
 import org.jetbrains.annotations.Nls;
@@ -48,6 +51,7 @@ public class ConfigManagerPanel implements Disposable {
     private JPanel mainPanel;
     private JBTable configTable;
     private ConfigTableModel tableModel;
+    private ComboBox<DisplayMode> displayModeCombo;
     private final List<ShellCommandConfig> configs = new ArrayList<>();
 
     // Column indices
@@ -78,6 +82,10 @@ public class ConfigManagerPanel implements Disposable {
         loadConfigs();
         if (tableModel != null) {
             tableModel.fireTableDataChanged();
+        }
+        if (displayModeCombo != null
+                && displayModeCombo.getSelectedItem() != configService.getDisplayMode()) {
+            displayModeCombo.setSelectedItem(configService.getDisplayMode());
         }
     }
 
@@ -116,9 +124,14 @@ public class ConfigManagerPanel implements Disposable {
         JBScrollPane scrollPane = new JBScrollPane(configTable);
         scrollPane.setBorder(JBUI.Borders.empty());
 
+        // Toolbar actions on top, display-mode selector right below them.
+        JPanel northPanel = new JPanel(new BorderLayout());
+        northPanel.add(decorator.createPanel(), BorderLayout.NORTH);
+        northPanel.add(createDisplayModePanel(), BorderLayout.CENTER);
+
         mainPanel = new JPanel(new BorderLayout());
         mainPanel.add(scrollPane, BorderLayout.CENTER);
-        mainPanel.add(decorator.createPanel(), BorderLayout.NORTH);
+        mainPanel.add(northPanel, BorderLayout.NORTH);
         mainPanel.setPreferredSize(JBUI.size(600, 400));
         mainPanel.setBorder(JBUI.Borders.empty(10));
 
@@ -130,6 +143,27 @@ public class ConfigManagerPanel implements Disposable {
                 }
             }
         });
+    }
+
+    /**
+     * Builds the toolbar display-mode selector: Popup (single icon with
+     * dropdown, default) or Flat (one button per command).
+     */
+    private JPanel createDisplayModePanel() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 4));
+        panel.add(new JBLabel("Toolbar display mode:"));
+        displayModeCombo = new ComboBox<>(DisplayMode.values());
+        displayModeCombo.setRenderer(SimpleListCellRenderer.create(
+                "Select display mode", DisplayMode::getDisplayName));
+        displayModeCombo.setSelectedItem(configService.getDisplayMode());
+        displayModeCombo.addActionListener(ev -> {
+            Object selected = displayModeCombo.getSelectedItem();
+            if (selected instanceof DisplayMode) {
+                configService.setDisplayMode((DisplayMode) selected);
+            }
+        });
+        panel.add(displayModeCombo);
+        return panel;
     }
 
     private void configureTableColumns() {

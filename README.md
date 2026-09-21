@@ -5,6 +5,7 @@
 ## ✨ Features
 
 - **Toolbar Action Group**: Dynamic shell command buttons in the main toolbar
+- **Display Modes**: Popup (single icon with dropdown, default) or Flat (one button per command directly on the toolbar) — switchable in Settings > Tools > Shell Toolbar
 - **Tool Window Panel**: Full-featured command manager with search, add/edit/delete, and context menu
 - **Status Bar Widget**: Quick command popup accessible from the status bar
 - **Settings Integration**: Configure commands via Settings > Tools > Shell Toolbar

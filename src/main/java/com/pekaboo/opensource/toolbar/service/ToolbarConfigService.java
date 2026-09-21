@@ -10,6 +10,7 @@ import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.util.messages.MessageBusConnection;
 import com.intellij.util.messages.Topic;
+import com.pekaboo.opensource.toolbar.model.DisplayMode;
 import com.pekaboo.opensource.toolbar.model.ShellCommandConfig;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -65,6 +66,10 @@ public class ToolbarConfigService implements PersistentStateComponent<ToolbarCon
     public static class State {
         @SuppressWarnings("unused")
         public List<ShellCommandConfig> configs;
+
+        /** Persisted toolbar display mode ({@code POPUP} or {@code FLAT}); null means POPUP. */
+        @SuppressWarnings("unused")
+        public String displayMode;
     }
 
     private final State state = new State();
@@ -80,6 +85,7 @@ public class ToolbarConfigService implements PersistentStateComponent<ToolbarCon
             ensureDefaultConfigs();
             State copy = new State();
             copy.configs = state.configs == null ? new ArrayList<>() : new ArrayList<>(state.configs);
+            copy.displayMode = state.displayMode;
             return copy;
         }
     }
@@ -90,6 +96,26 @@ public class ToolbarConfigService implements PersistentStateComponent<ToolbarCon
     public void loadState(@NotNull State state) {
         synchronized (this) {
             this.state.configs = state.configs != null ? new ArrayList<>(state.configs) : new ArrayList<>();
+            this.state.displayMode = state.displayMode;
+        }
+    }
+
+    /**
+     * Gets the toolbar display mode (defaults to {@link DisplayMode#POPUP}).
+     */
+    @NotNull
+    public synchronized DisplayMode getDisplayMode() {
+        return DisplayMode.parse(state.displayMode);
+    }
+
+    /**
+     * Sets the toolbar display mode. Fires a change event only when the mode
+     * actually changes, so the toolbar can re-render immediately.
+     */
+    public synchronized void setDisplayMode(@NotNull DisplayMode mode) {
+        if (getDisplayMode() != mode) {
+            state.displayMode = mode.name();
+            fireConfigsChanged();
         }
     }
 
