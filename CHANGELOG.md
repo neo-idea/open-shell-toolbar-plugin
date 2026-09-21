@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.5.2] - 2026-09-21
+
+## What's Changed
+
+**1 commits** since previous release.
+
+### 🐛 Bug Fixes
+- persist configs, unify toolbar/status-bar rendering, open built-in terminal reliably (5e5f55e)
+
+---
+
+**Full Changelog**: https://github.com/neo-idea/open-shell-toolbar-plugin/compare/v1.5.0...v1.5.2
+
+
 ## [1.5.0] - 2026-08-11
 
 ## What's Changed

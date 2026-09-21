@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "com.openshell.idea"
-version = "1.5.1"
+version = "1.5.2"
 
 repositories {
     mavenCentral()
@@ -38,12 +38,9 @@ intellijPlatform {
             Add shell command buttons to toolbar, sidebar, and status bar for quick access to frequently used commands.
         """.trimIndent()
         changeNotes = """
-            <b>1.5.1</b><br/>
+            <b>1.5.2</b><br/>
             <b>Bug Fixes</b><br/><ul>
-<li>fix: command configurations are now truly persisted across IDE restarts (the service never implemented PersistentStateComponent before, so new commands were silently lost)</li>
-<li>fix: toolbar dropdown and status bar popup now render consistently (emoji icon + title + command preview, shared renderer, empty state with Configure entry)</li>
-<li>fix: "Open in Terminal" reliably opens the IntelliJ built-in terminal — modern terminal API on 2025.2+ with classic API fallback, instead of silently dropping to the OS terminal</li>
-<li>fix: settings page and tool window refresh live when commands change elsewhere</li>
+<li>persist configs, unify toolbar/status-bar rendering, open built-in terminal reliably</li>
 </ul>
         """.trimIndent()
         vendor {
