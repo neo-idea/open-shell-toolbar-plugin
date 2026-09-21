@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.9.6] - 2026-09-21
+
+## What's Changed
+
+**1 commits** since previous release.
+
+### 🐛 Bug Fixes
+- remove stacked horizontal padding in settings page and tool window (47f8255)
+
+---
+
+**Full Changelog**: https://github.com/neo-idea/open-shell-toolbar-plugin/compare/v1.9.5...v1.9.6
+
+
 ## [1.9.5] - 2026-09-21
 
 ## What's Changed

@@ -13,9 +13,9 @@
     <depends>org.jetbrains.plugins.terminal</depends>
 
     <change-notes><![CDATA[
-        <b>1.9.5</b><br/>
+        <b>1.9.6</b><br/>
         <b>Bug Fixes</b><br/><ul>
-<li>render emoji/SVG/URL icons in the tool-window command table Icon column</li>
+<li>remove stacked horizontal padding in settings page and tool window</li>
 </ul>
     ]]></change-notes>
 
