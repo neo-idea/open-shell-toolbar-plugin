@@ -3,6 +3,7 @@ package com.pekaboo.opensource.toolbar.ui;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.util.IconLoader;
 import com.intellij.util.ui.JBUI;
 import com.pekaboo.opensource.toolbar.action.EmojiIcon;
 import org.jetbrains.annotations.NotNull;
@@ -172,15 +173,117 @@ public final class CommandIconManager {
         return head.startsWith("<svg") || head.startsWith("<?xml") && head.contains("<svg");
     }
 
-    /** Renders SVG bytes via the platform renderer (reflection-tolerant). */
+    /**
+     * Renders SVG bytes via the platform renderer. The public entry point
+     * drifted across IDE versions (SVGLoader → jsvg), so we enumerate any
+     * {@code renderSvg} variant that accepts bytes + scale, then fall back to
+     * loading a temp .svg file through {@link IconLoader}. All reflective —
+     * keeps compiling/running from 2023.3 to the newest IDEs.
+     */
     private static @Nullable Image renderSvg(byte @NotNull [] bytes) {
         try {
             Class<?> svgKt = Class.forName("com.intellij.ui.svg.SvgKt");
-            Method render = svgKt.getMethod("renderSvg", byte[].class, float.class);
-            Object result = render.invoke(null, bytes, 1.0f);
-            return result instanceof Image ? (Image) result : null;
+            for (Method m : svgKt.getMethods()) {
+                if (!"renderSvg".equals(m.getName())) continue;
+                Class<?>[] p = m.getParameterTypes();
+                // renderSvg(byte[], float[, ...]): preferred shape
+                if (p.length >= 2 && p[0] == byte[].class && isFloat(p[1])) {
+                    Object result = m.invoke(null, buildArgs(m, bytes));
+                    if (result instanceof Image) return (Image) result;
+                }
+            }
+            for (Method m : svgKt.getMethods()) {
+                if (!"renderSvg".equals(m.getName())) continue;
+                Class<?>[] p = m.getParameterTypes();
+                // renderSvg(InputStream, float, String): older shape
+                if (p.length == 3 && InputStream.class.isAssignableFrom(p[0]) && isFloat(p[1])) {
+                    Object result = m.invoke(null, new ByteArrayInputStream(bytes), 1.0f, null);
+                    if (result instanceof Image) return (Image) result;
+                }
+            }
         } catch (Throwable t) {
-            LOG.warn("Platform SVG renderer unavailable; falling back to default icon", t);
+            LOG.warn("Platform SVG renderer unavailable, trying IconLoader fallback", t);
+        }
+        return renderSvgViaIconLoader(bytes);
+    }
+
+    private static boolean isFloat(@NotNull Class<?> c) {
+        return c == float.class || c == Float.class;
+    }
+
+    private static Object[] buildArgs(@NotNull Method m, byte @NotNull [] bytes) {
+        Class<?>[] p = m.getParameterTypes();
+        Object[] args = new Object[p.length];
+        args[0] = bytes;
+        for (int i = 1; i < p.length; i++) {
+            args[i] = p[i] == float.class || p[i] == Float.class ? 1.0f : null;
+        }
+        return args;
+    }
+
+    /**
+     * Last resort: write a temp .svg and rasterize via whatever icon loader
+     * this IDE build exposes — IconManager (newer) or IconLoader.getIcon(URL)
+     * (legacy). Both reflective: compiles everywhere, uses what exists.
+     */
+    private static @Nullable Image renderSvgViaIconLoader(byte @NotNull [] bytes) {
+        java.nio.file.Path temp = null;
+        try {
+            temp = java.nio.file.Files.createTempFile("open-shell-icon-", ".svg");
+            java.nio.file.Files.write(temp, bytes);
+            java.net.URL url = temp.toUri().toURL();
+
+            Icon icon = null;
+            icon = iconViaIconManager(url);
+            if (icon == null) {
+                icon = iconViaLegacyIconLoader(url);
+            }
+            if (icon == null || icon.getIconWidth() <= 0 || icon.getIconHeight() <= 0) {
+                return null;
+            }
+            BufferedImage image = new BufferedImage(icon.getIconWidth(), icon.getIconHeight(),
+                    BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g = image.createGraphics();
+            try {
+                icon.paintIcon(null, g, 0, 0);
+            } finally {
+                g.dispose();
+            }
+            return image;
+        } catch (Throwable t) {
+            LOG.warn("SVG rasterization failed on this IDE build", t);
+            return null;
+        } finally {
+            if (temp != null) {
+                try {
+                    java.nio.file.Files.deleteIfExists(temp);
+                } catch (Exception ignored) {
+                }
+            }
+        }
+    }
+
+    /** IconManager.createOrGetIcon(URL, IconTransform) on newer IDEs. */
+    private static @Nullable Icon iconViaIconManager(@NotNull java.net.URL url) {
+        try {
+            Class<?> manager = Class.forName("com.intellij.ui.icons.IconManager");
+            Object instance = manager.getField("INSTANCE").get(null);
+            Method create = manager.getMethod("createOrGetIcon", java.net.URL.class,
+                    Class.forName("com.intellij.ui.icons.IconTransform"));
+            Object result = create.invoke(instance, url, null);
+            return result instanceof Icon ? (Icon) result : null;
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /** Legacy IconLoader.getIcon(URL) on older IDEs. */
+    private static @Nullable Icon iconViaLegacyIconLoader(@NotNull java.net.URL url) {
+        try {
+            Method getIcon = IconLoader.class.getMethod("getIcon", java.net.URL.class);
+            Object result = getIcon.invoke(null, url);
+            return result instanceof Icon ? (Icon) result : null;
+        } catch (Throwable t) {
             return null;
         }
     }

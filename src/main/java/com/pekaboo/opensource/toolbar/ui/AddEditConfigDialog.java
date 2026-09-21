@@ -17,6 +17,7 @@ import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
 import com.pekaboo.opensource.toolbar.action.EmojiIcon;
 import com.pekaboo.opensource.toolbar.model.ShellCommandConfig;
+import com.pekaboo.opensource.toolbar.service.ToolbarConfigService;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -41,6 +42,7 @@ public class AddEditConfigDialog extends DialogWrapper {
     private JBTextField workingDirField;
     private JBTextField iconField;
     private JBLabel iconPreviewLabel;
+    private com.intellij.util.messages.MessageBusConnection previewConnection;
     private JBCheckBox enabledCheckBox;
     private JBCheckBox openInTerminalCheckBox;
 
@@ -84,9 +86,22 @@ public class AddEditConfigDialog extends DialogWrapper {
 
         setTitle(isEditMode ? "Edit Shell Command" : "Add Shell Command");
         init();
+        // Async icon loads (URL/SVG) finish after the dialog opens — refresh
+        // the live preview when they land.
+        previewConnection = ToolbarConfigService.subscribe(() ->
+                javax.swing.SwingUtilities.invokeLater(this::updateIconPreview));
         if (config != null) {
             populateFromConfig(config);
         }
+    }
+
+    @Override
+    protected void dispose() {
+        if (previewConnection != null) {
+            previewConnection.dispose();
+            previewConnection = null;
+        }
+        super.dispose();
     }
 
     @Override
@@ -331,6 +346,9 @@ public class AddEditConfigDialog extends DialogWrapper {
 
     /** Live icon preview: emoji renders instantly; URL/SVG resolves async. */
     private void updateIconPreview() {
+        if (iconPreviewLabel == null) {
+            return;
+        }
         String raw = iconField.getText().trim();
         if (raw.isEmpty()) {
             iconPreviewLabel.setIcon(null);

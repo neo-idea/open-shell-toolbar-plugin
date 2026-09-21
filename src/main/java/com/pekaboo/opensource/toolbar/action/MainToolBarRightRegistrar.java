@@ -57,6 +57,7 @@ public final class MainToolBarRightRegistrar implements StartupActivity {
 
         ActionManager am = ActionManager.getInstance();
         AnAction group = am.getAction("ShellToolbarGroup");
+        AnAction flatGroup = am.getAction("ShellToolbarFlatGroup");
         if (group == null) {
             LOG.warn("ShellToolbarGroup not found in ActionManager");
             return;
@@ -76,6 +77,11 @@ public final class MainToolBarRightRegistrar implements StartupActivity {
                         dg.add(group);
                         added++;
                         LOG.info("ShellToolbarGroup added to " + groupId);
+                    }
+                    if (flatGroup != null && !dg.containsAction(flatGroup)) {
+                        dg.add(flatGroup);
+                        added++;
+                        LOG.info("ShellToolbarFlatGroup added to " + groupId);
                     }
                 }
             } catch (Exception e) {
