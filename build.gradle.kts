@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "com.openshell.idea"
-version = "1.9.2"
+version = "1.9.3"
 
 repositories {
     mavenCentral()
@@ -38,11 +38,8 @@ intellijPlatform {
             Add shell command buttons to toolbar, sidebar, and status bar for quick access to frequently used commands.
         """.trimIndent()
         changeNotes = """
-            <b>1.9.2</b><br/>
-            <b>Bug Fixes</b><br/><ul>
-<li>repair mangled changeNotes block in build.gradle.kts</li>
-<li>flat mode really renders one button per command; SVG icons render across IDE versions</li>
-</ul>
+            <b>1.9.3</b><br/>
+            
         """.trimIndent()
         vendor {
             name = "talentneo"

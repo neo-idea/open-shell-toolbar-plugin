@@ -13,11 +13,8 @@
     <depends>org.jetbrains.plugins.terminal</depends>
 
     <change-notes><![CDATA[
-        <b>1.9.2</b><br/>
-        <b>Bug Fixes</b><br/><ul>
-<li>repair mangled changeNotes block in build.gradle.kts</li>
-<li>flat mode really renders one button per command; SVG icons render across IDE versions</li>
-</ul>
+        <b>1.9.3</b><br/>
+        
     ]]></change-notes>
 
     <extensions defaultExtensionNs="com.intellij">

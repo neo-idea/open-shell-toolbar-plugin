@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.9.3] - 2026-09-21
+
+## What's Changed
+
+**1 commits** since previous release.
+
+---
+
+**Full Changelog**: https://github.com/neo-idea/open-shell-toolbar-plugin/compare/v1.9.2...v1.9.3
+
+
 ## [1.9.2] - 2026-09-21
 
 ## What's Changed
