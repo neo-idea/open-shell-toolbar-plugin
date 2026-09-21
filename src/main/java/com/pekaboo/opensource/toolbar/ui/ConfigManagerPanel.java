@@ -28,6 +28,7 @@ import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.AbstractTableModel;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
@@ -169,6 +170,23 @@ public class ConfigManagerPanel implements Disposable {
     private void configureTableColumns() {
         TableColumnModel columnModel = configTable.getColumnModel();
 
+        // Render the icon column as a real icon (emoji / SVG / image URL),
+        // not as raw text. Async loads refresh the table via CONFIG_CHANGED.
+        columnModel.getColumn(COL_ICON).setCellRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                                                            boolean isSelected, boolean hasFocus,
+                                                            int row, int column) {
+                super.getTableCellRendererComponent(table, "", isSelected, hasFocus, row, column);
+                String raw = value instanceof String ? (String) value : null;
+                setIcon(CommandIconManager.iconWithFallback(raw, "\uD83D\uDCBB"));
+                setText("");
+                setHorizontalAlignment(SwingConstants.CENTER);
+                setToolTipText(raw != null && raw.length() > 100
+                        ? raw.substring(0, 100) + "..." : raw);
+                return this;
+            }
+        });
         columnModel.getColumn(COL_ICON).setPreferredWidth(50);
         columnModel.getColumn(COL_ICON).setMaxWidth(60);
 

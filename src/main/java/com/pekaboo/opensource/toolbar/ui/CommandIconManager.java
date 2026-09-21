@@ -93,6 +93,19 @@ public final class CommandIconManager {
         return null;
     }
 
+    /**
+     * Full resolution with fallback for renderers: emoji renders directly,
+     * image sources resolve from cache (async load kicks in, default emoji
+     * shows until ready / on failure).
+     */
+    public static @NotNull Icon iconWithFallback(@Nullable String raw, @NotNull String fallbackEmoji) {
+        if (isImageSource(raw)) {
+            Icon icon = resolve(raw);
+            return icon != null ? icon : new EmojiIcon(fallbackEmoji);
+        }
+        return new EmojiIcon(raw != null && !raw.isEmpty() ? raw : fallbackEmoji);
+    }
+
     private static void loadInBackground(@NotNull String raw) {
         Icon icon = null;
         try {

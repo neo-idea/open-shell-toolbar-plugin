@@ -2,7 +2,6 @@ package com.pekaboo.opensource.toolbar.ui;
 
 import com.intellij.ui.ColoredListCellRenderer;
 import com.intellij.ui.SimpleTextAttributes;
-import com.pekaboo.opensource.toolbar.action.EmojiIcon;
 import com.pekaboo.opensource.toolbar.model.ShellCommandConfig;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -45,13 +44,6 @@ public class CommandListRenderer extends ColoredListCellRenderer<ShellCommandCon
 
     /** Emoji renders directly; URL/SVG icons come from the manager's cache. */
     private static @NotNull Icon resolveIcon(@Nullable String raw) {
-        if (raw != null && CommandIconManager.isImageSource(raw)) {
-            Icon icon = CommandIconManager.resolve(raw);
-            if (icon != null) {
-                return icon;
-            }
-            return new EmojiIcon(DEFAULT_ICON);
-        }
-        return new EmojiIcon(raw != null && !raw.isEmpty() ? raw : DEFAULT_ICON);
+        return CommandIconManager.iconWithFallback(raw, DEFAULT_ICON);
     }
 }

@@ -13,8 +13,15 @@
     <depends>org.jetbrains.plugins.terminal</depends>
 
     <change-notes><![CDATA[
-        <b>1.9.3</b><br/>
-        
+        <b>1.9.4</b><br/>
+        <b>Bug Fixes</b><br/><ul>
+<li>tool-window command table renders emoji / SVG / image-URL icons in the Icon column instead of raw text</li>
+</ul>
+        <b>1.9.2</b><br/>
+        <b>Bug Fixes</b><br/><ul>
+<li>repair mangled changeNotes block in build.gradle.kts</li>
+<li>flat mode really renders one button per command; SVG icons render across IDE versions</li>
+</ul>
     ]]></change-notes>
 
     <extensions defaultExtensionNs="com.intellij">
