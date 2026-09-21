@@ -285,6 +285,19 @@ public class ToolbarConfigService implements PersistentStateComponent<ToolbarCon
     }
 
     /**
+     * Fires the config-changed event application-wide, e.g. after an async
+     * icon download finishes, so every surface (toolbar, dropdown, status-bar
+     * popup, settings) re-renders.
+     */
+    public static void fireConfigsChangedPublic() {
+        ToolbarConfigService service = ApplicationManager.getApplication()
+                .getService(ToolbarConfigService.class);
+        if (service != null) {
+            service.fireConfigsChanged();
+        }
+    }
+
+    /**
      * Clears all configurations.
      * Use with caution - this cannot be undone.
      */

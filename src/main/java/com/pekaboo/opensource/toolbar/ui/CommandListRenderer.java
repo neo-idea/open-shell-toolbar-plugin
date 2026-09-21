@@ -5,6 +5,7 @@ import com.intellij.ui.SimpleTextAttributes;
 import com.pekaboo.opensource.toolbar.action.EmojiIcon;
 import com.pekaboo.opensource.toolbar.model.ShellCommandConfig;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 
@@ -30,8 +31,8 @@ public class CommandListRenderer extends ColoredListCellRenderer<ShellCommandCon
         if (config == null) {
             return;
         }
-        setIcon(new EmojiIcon(config.getIcon() != null && !config.getIcon().isEmpty()
-                ? config.getIcon() : DEFAULT_ICON));
+        setIcon(resolveIcon(config.getIcon()));
+;
         append(config.getTitle() != null ? config.getTitle() : "",
                 SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES);
         append("  ");
@@ -40,5 +41,17 @@ public class CommandListRenderer extends ColoredListCellRenderer<ShellCommandCon
             preview = preview.substring(0, COMMAND_PREVIEW_LENGTH - 3) + "...";
         }
         append(preview != null ? preview : "", SimpleTextAttributes.GRAY_ATTRIBUTES);
+    }
+
+    /** Emoji renders directly; URL/SVG icons come from the manager's cache. */
+    private static @NotNull Icon resolveIcon(@Nullable String raw) {
+        if (raw != null && CommandIconManager.isImageSource(raw)) {
+            Icon icon = CommandIconManager.resolve(raw);
+            if (icon != null) {
+                return icon;
+            }
+            return new EmojiIcon(DEFAULT_ICON);
+        }
+        return new EmojiIcon(raw != null && !raw.isEmpty() ? raw : DEFAULT_ICON);
     }
 }

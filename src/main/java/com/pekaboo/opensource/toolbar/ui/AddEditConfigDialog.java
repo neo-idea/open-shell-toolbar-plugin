@@ -15,6 +15,7 @@ import com.intellij.ui.components.JBTextField;
 import com.intellij.util.ui.FormBuilder;
 import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
+import com.pekaboo.opensource.toolbar.action.EmojiIcon;
 import com.pekaboo.opensource.toolbar.model.ShellCommandConfig;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -39,6 +40,7 @@ public class AddEditConfigDialog extends DialogWrapper {
     private JBTextArea commandField;
     private JBTextField workingDirField;
     private JBTextField iconField;
+    private JBLabel iconPreviewLabel;
     private JBCheckBox enabledCheckBox;
     private JBCheckBox openInTerminalCheckBox;
 
@@ -101,7 +103,20 @@ public class AddEditConfigDialog extends DialogWrapper {
         workingDirField.setToolTipText("Working directory for command execution (leave empty for default)");
 
         iconField = new JBTextField();
-        iconField.setToolTipText("Enter an emoji icon (e.g., 💻)");
+        iconField.setToolTipText("<html>Emoji (e.g. 💻), inline SVG code (&lt;svg…&gt;), or an image URL<br>" +
+                "(http://, https://, file:// or data:image/…; PNG / JPEG / GIF / SVG)</html>");
+        iconField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            @Override public void insertUpdate(javax.swing.event.DocumentEvent e) { updateIconPreview(); }
+            @Override public void removeUpdate(javax.swing.event.DocumentEvent e) { updateIconPreview(); }
+            @Override public void changedUpdate(javax.swing.event.DocumentEvent e) { updateIconPreview(); }
+        });
+
+        iconPreviewLabel = new JBLabel();
+        iconPreviewLabel.setToolTipText("Icon preview");
+        iconPreviewLabel.setBorder(JBUI.Borders.empty(0, 6, 0, 0));
+        JPanel iconFieldPanel = new JPanel(new BorderLayout());
+        iconFieldPanel.add(iconField, BorderLayout.CENTER);
+        iconFieldPanel.add(iconPreviewLabel, BorderLayout.EAST);
 
         enabledCheckBox = new JBCheckBox("Enabled", true);
         enabledCheckBox.setToolTipText("Enable or disable this command");
@@ -145,8 +160,8 @@ public class AddEditConfigDialog extends DialogWrapper {
                 .addComponent(createLabelPanel("Working Directory:", "Leave empty for project directory"))
                 .addComponent(workingDirPanel)
                 .addVerticalGap(4)
-                .addComponent(createLabelPanel("Icon:", "Click an emoji or enter your own"))
-                .addComponent(iconField)
+                .addComponent(createLabelPanel("Icon:", "Emoji, inline SVG code, or an image URL — with live preview"))
+                .addComponent(iconFieldPanel)
                 .addComponent(emojiPanel)
                 .addVerticalGap(8)
                 .addComponent(openInTerminalCheckBox)
@@ -267,6 +282,7 @@ public class AddEditConfigDialog extends DialogWrapper {
         commandField.setText(config.getCommand() != null ? config.getCommand() : "");
         workingDirField.setText(config.getWorkingDir() != null ? config.getWorkingDir() : "");
         iconField.setText(config.getIcon() != null ? config.getIcon() : "\uD83D\uDCBB");
+        updateIconPreview();
         enabledCheckBox.setSelected(config.isEnabled());
         openInTerminalCheckBox.setSelected(config.isOpenInTerminal());
     }
@@ -309,5 +325,22 @@ public class AddEditConfigDialog extends DialogWrapper {
     public void setConfig(@NotNull ShellCommandConfig config) {
         this.existingConfig = config;
         populateFromConfig(config);
+    }
+
+    private static final String DEFAULT_PREVIEW_ICON = "\uD83D\uDCBB"; // 💻
+
+    /** Live icon preview: emoji renders instantly; URL/SVG resolves async. */
+    private void updateIconPreview() {
+        String raw = iconField.getText().trim();
+        if (raw.isEmpty()) {
+            iconPreviewLabel.setIcon(null);
+            return;
+        }
+        if (CommandIconManager.isImageSource(raw)) {
+            Icon icon = CommandIconManager.resolve(raw);
+            iconPreviewLabel.setIcon(icon != null ? icon : new EmojiIcon(DEFAULT_PREVIEW_ICON));
+        } else {
+            iconPreviewLabel.setIcon(new EmojiIcon(raw));
+        }
     }
 }

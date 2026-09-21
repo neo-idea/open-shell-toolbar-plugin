@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "com.openshell.idea"
-version = "1.7.0"
+version = "1.8.0"
 
 repositories {
     mavenCentral()
@@ -38,6 +38,10 @@ intellijPlatform {
             Add shell command buttons to toolbar, sidebar, and status bar for quick access to frequently used commands.
         """.trimIndent()
         changeNotes = """
+            <b>1.8.0</b><br/>
+            <b>New Features</b><br/><ul>
+<li>icon field now supports inline SVG code and image URLs (http/https/file, data: URI) in addition to emoji — rendered in toolbar, dropdown and status-bar popup, with async download + caching and a live preview in the edit dialog</li>
+</ul>
             <b>1.7.0</b><br/>
             <b>New Features</b><br/><ul>
 <li>toolbar display modes — Popup (dropdown icon, default) or Flat (one button per command)</li>
